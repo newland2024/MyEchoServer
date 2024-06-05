@@ -6,6 +6,8 @@
 
 #include <cstdint>
 #include <functional>
+#include <set>
+#include <unordered_map>
 
 namespace MyCoroutine {
 
@@ -40,6 +42,19 @@ typedef struct Coroutine {
   uint8_t* stack;  // 每个协程独占的协程栈，动态分配
 } Coroutine;
 
+// 协程互斥量
+typedef struct CoMutex {
+  int64_t id;  // 互斥锁id
+  bool lock;  // true表示被锁定，false表示被解锁
+  std::set<int> suspend_cids;  // 因为等待互斥量而挂起的协程id
+} CoMutex;
+
+// 协程互斥量管理器
+typedef struct CoMutexManage {
+  int64_t alloc_id;  // 要分配的互斥量id
+  std::unordered_map<int64_t, CoMutex*> mutexs;
+} CoMutexManage;
+
 // 协程调度器
 typedef struct Schedule {
   ucontext_t main;  // 用于保存主协程的上下文
@@ -48,6 +63,7 @@ typedef struct Schedule {
   bool isMasterCoroutine;  // 当前协程是否为主协程
   Coroutine* coroutines[kMaxCoroutineSize];  // 从协程数组池
   int stackSize;  // 协程栈的大小，单位字节
+  CoMutexManage mutexManage;  // 互斥量管理
 } Schedule;
 
 // 协程初始化
@@ -78,6 +94,14 @@ int CoroutineResumeById(Schedule& schedule, int id);
 int ScheduleInit(Schedule& schedule, int coroutineCnt, int stackSize = 8 * 1024);
 // 判断是否还有协程在运行
 bool ScheduleRunning(Schedule& schedule);
+// 调度器主动驱动协程执行
+void ScheduleRun(Schedule& schedule);
 // 释放调度器
 void ScheduleClean(Schedule& schedule);
+// 互斥量初始化
+void CoMutexInit(Schedule& schedule, CoMutex& mutex);
+// 互斥量锁定
+void CoMutexLock(Schedule& schedule, CoMutex& mutex);
+// 互斥量解锁
+void CoMutexUnLock(Schedule& schedule, CoMutex& mutex);
 }  // namespace MyCoroutine

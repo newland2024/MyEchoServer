@@ -102,6 +102,7 @@ int ScheduleInit(Schedule& schedule, int coroutineCnt, int stackSize) {
     schedule.coroutines[i]->state = Idle;
     schedule.coroutines[i]->stack = nullptr;
   }
+  schedule.mutexManage.alloc_id = 0;  // 互斥量id从0开始分配
   return 0;
 }
 
@@ -120,5 +121,46 @@ void ScheduleClean(Schedule& schedule) {
     delete[] schedule.coroutines[i]->stack;
     delete schedule.coroutines[i];
   }
+}
+
+void ScheduleRun(Schedule& schedule) {
+  assert(schedule.isMasterCoroutine);
+  for (const auto& item : schedule.mutexManage.mutexs) {
+    if (item.second->lock) continue;  // 锁没释放，不需要唤醒其他从协程
+    if (item.second->suspend_cids.size() <= 0) continue;  // 锁已经释放了，但是没有挂起的从协程，也不需要唤醒
+    int id = *item.second->suspend_cids.begin();
+    item.second->suspend_cids.erase(id);
+    CoroutineResumeById(schedule, id);  // 每次只能唤醒一个从协程，采用先进先出的策略
+  }
+}
+
+void CoMutexInit(Schedule& schedule, CoMutex& mutex) {
+  mutex.id = schedule.mutexManage.alloc_id;
+  mutex.lock = false;
+  schedule.mutexManage.alloc_id++;
+  schedule.mutexManage.mutexs[mutex.id] = &mutex;
+}
+
+void CoMutexLock(Schedule& schedule, CoMutex& mutex) {
+  while (true) {
+    assert(not schedule.isMasterCoroutine);
+    if (not mutex.lock) {
+      mutex.lock = true;  // 加锁成功，直接返回
+      return;
+    }
+    // 更新因为等待互斥量而被挂起的从协程id
+    if (schedule.mutexManage.mutexs[mutex.id]->suspend_cids.find(schedule.runningCoroutineId) ==
+        schedule.mutexManage.mutexs[mutex.id]->suspend_cids.end()) {
+      schedule.mutexManage.mutexs[mutex.id]->suspend_cids.insert(schedule.runningCoroutineId);
+    }
+    // 从协程让出执行权
+    CoroutineYield(schedule);
+  }
+}
+
+void CoMutexUnLock(Schedule& schedule, CoMutex& mutex) {
+  assert(not schedule.isMasterCoroutine);
+  assert(mutex.lock);  // 必须是锁定的
+  mutex.lock = false;  // 设置层false即可，后续由调度器schedule去激活那些被挂起的从协程
 }
 }  // namespace MyCoroutine
