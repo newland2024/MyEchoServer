@@ -44,26 +44,6 @@ TEST_CASE(Coroutine_Failure) {
   ScheduleClean(schedule);
 }
 
-void MutexTest1(Schedule* schedule, CoMutex* mutex, int* sum) {
-  for (int i = 0; i < 10000; i++) {
-    CoMutexLock(*schedule, *mutex);
-    (*sum)++;
-    CoroutineYield(*schedule);
-    CoMutexUnLock(*schedule, *mutex);
-    CoroutineYield(*schedule);
-  }
-}
-
-void MutexTest2(Schedule* schedule, CoMutex* mutex, int* sum) {
-  for (int i = 0; i < 10000; i++) {
-    CoMutexLock(*schedule, *mutex);
-    (*sum) += 2;
-    CoroutineYield(*schedule);
-    CoMutexUnLock(*schedule, *mutex);
-    CoroutineYield(*schedule);
-  }
-}
-
 void MutexSingleCoroutine(Schedule& schedule, CoMutex& mutex, int& sum) {
   CoMutexLock(schedule, mutex);
   sum = 666;
@@ -123,7 +103,7 @@ void MutexMultiCoroutine2(Schedule& schedule, CoMutex& mutex, int& sum) {
   CoMutexUnLock(schedule, mutex);
 }
 
-TEST_CASE(Mutex_MultiCoroutine) {
+TEST_CASE(Mutex_Priority) {
   Schedule schedule;
   ScheduleInit(schedule, 1024);
   int sum = -1;
@@ -152,32 +132,31 @@ TEST_CASE(Mutex_MultiCoroutine) {
   std::cout << "sum = " << sum << std::endl;
 }
 
-// TEST_CASE(Coroutine_Mutex) {
-//   Schedule schedule;
-//   ScheduleInit(schedule, 1024);
-//   int sum = 0;
-//   CoMutex mutex;
-//   CoMutexInit(schedule, mutex);
-//   ASSERT_FALSE(ScheduleRunning(schedule));
-//   int id1 = CoroutineCreate(schedule, MutexTest1, &schedule, &mutex, &sum);
-//   ASSERT_EQ(id1, 0);
-//   int id2 = CoroutineCreate(schedule, MutexTest2, &schedule, &mutex, &sum);
-//   ASSERT_EQ(id2, 1);
-//   bool round = false;
-//   while (ScheduleRunning(schedule)) {
-//     if (round) {
-//       CoroutineResumeById(schedule, id1);
-//       CoroutineResumeById(schedule, id2);
-//       round = false;
-//     } else {
-//       CoroutineResumeById(schedule, id2);
-//       CoroutineResumeById(schedule, id1);
-//       round = true;
-//     }
-//     ScheduleRun(schedule);
-//   }
-//   ScheduleClean(schedule);
-//   std::cout << "sum = " << sum << std::endl;
-// }
+void MutexMulti(Schedule& schedule, CoMutex& mutex, int& sum) {
+  for (int i = 0; i < 500; i++) {
+    CoMutexLock(schedule, mutex);
+    sum++;
+    CoroutineYield(schedule);
+    CoMutexUnLock(schedule, mutex);
+    CoroutineYield(schedule);
+  }
+}
 
-// 需要测试循环唤醒Lock函数，但是获取不到锁。Mutex还需要专门写一个验收列表，来一个一个测试！
+TEST_CASE(Mutex_Multi) {
+  Schedule schedule;
+  ScheduleInit(schedule, 1024);
+  int sum = 0;
+  CoMutex mutex;
+  CoMutexInit(schedule, mutex);
+  ASSERT_FALSE(ScheduleRunning(schedule));
+  for (int i = 0; i < 500; i++) {
+    CoroutineCreate(schedule, MutexMulti, std::ref(schedule), std::ref(mutex), std::ref(sum));
+  }
+  while (ScheduleRunning(schedule)) {
+    ScheduleRun(schedule);
+    CoroutineResumeAll(schedule);
+  }
+  ScheduleClean(schedule);
+  ASSERT_EQ(sum, 250000);
+  std::cout << "sum = " << sum << std::endl;
+}
