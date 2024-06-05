@@ -1,6 +1,7 @@
 #include "coroutine.h"
 
 #include <assert.h>
+#include <unistd.h>
 
 #include <iostream>
 
@@ -76,6 +77,19 @@ int CoroutineResume(Schedule& schedule) {
   return Success;
 }
 
+int CoroutineResumeAll(Schedule& schedule) {
+  assert(schedule.isMasterCoroutine);
+  // 按优先级调度，选择优先级最高的状态为可运行的从协程来运行
+  for (int i = 0; i < schedule.coroutineCnt; i++) {
+    if (schedule.coroutines[i]->state == Idle || schedule.coroutines[i]->state == Run) {
+      continue;
+    }
+    // 执行到这里，schedule.coroutines[i]->state的值为 Suspend 或者 Ready
+    CoroutineResumeById(schedule, i);
+  }
+  return Success;
+}
+
 int CoroutineResumeById(Schedule& schedule, int id) {
   assert(schedule.isMasterCoroutine);
   assert(id >= 0 && id < schedule.coroutineCnt);
@@ -127,10 +141,11 @@ void ScheduleRun(Schedule& schedule) {
   assert(schedule.isMasterCoroutine);
   for (const auto& item : schedule.mutexManage.mutexs) {
     if (item.second->lock) continue;  // 锁没释放，不需要唤醒其他从协程
-    if (item.second->suspend_cids.size() <= 0) continue;  // 锁已经释放了，但是没有挂起的从协程，也不需要唤醒
-    int id = *item.second->suspend_cids.begin();
-    item.second->suspend_cids.erase(id);
-    CoroutineResumeById(schedule, id);  // 每次只能唤醒一个从协程，采用先进先出的策略
+    if (item.second->suspend_id_list.size() <= 0) continue;  // 锁已经释放了，但是没有挂起的从协程，也不需要唤醒
+    int id = item.second->suspend_id_list.front();
+    item.second->suspend_id_list.pop_front();
+    item.second->suspend_id_set.erase(id);
+    CoroutineResumeById(schedule, id);  // 每次只能唤醒等待队列中的一个从协程，采用先进先出的策略
   }
 }
 
@@ -141,7 +156,7 @@ void CoMutexInit(Schedule& schedule, CoMutex& mutex) {
   schedule.mutexManage.mutexs[mutex.id] = &mutex;
 }
 
-void CoMutexLock(Schedule& schedule, CoMutex& mutex) {
+void CoMutexLock(Schedule& schedule, CoMutex& mutex, bool debug) {
   while (true) {
     assert(not schedule.isMasterCoroutine);
     if (not mutex.lock) {
@@ -149,9 +164,13 @@ void CoMutexLock(Schedule& schedule, CoMutex& mutex) {
       return;
     }
     // 更新因为等待互斥量而被挂起的从协程id
-    if (schedule.mutexManage.mutexs[mutex.id]->suspend_cids.find(schedule.runningCoroutineId) ==
-        schedule.mutexManage.mutexs[mutex.id]->suspend_cids.end()) {
-      schedule.mutexManage.mutexs[mutex.id]->suspend_cids.insert(schedule.runningCoroutineId);
+    if (mutex.suspend_id_set.find(schedule.runningCoroutineId) == mutex.suspend_id_set.end()) {
+      mutex.suspend_id_set.insert(schedule.runningCoroutineId);
+      mutex.suspend_id_list.push_back(schedule.runningCoroutineId);
+    }
+    if (debug) {
+      sleep(1);
+      std::cout << "schedule.runningCoroutineId = " << schedule.runningCoroutineId << " yield" << std::endl;
     }
     // 从协程让出执行权
     CoroutineYield(schedule);

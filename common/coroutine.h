@@ -6,8 +6,9 @@
 
 #include <cstdint>
 #include <functional>
-#include <set>
+#include <list>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace MyCoroutine {
 
@@ -46,7 +47,8 @@ typedef struct Coroutine {
 typedef struct CoMutex {
   int64_t id;  // 互斥锁id
   bool lock;  // true表示被锁定，false表示被解锁
-  std::set<int> suspend_cids;  // 因为等待互斥量而挂起的协程id
+  std::unordered_set<int> suspend_id_set;  // 被挂起的从协程id查重集合
+  std::list<int> suspend_id_list;  // 因为等待互斥量而被挂起的从协程id列表
 } CoMutex;
 
 // 协程互斥量管理器
@@ -85,8 +87,10 @@ int CoroutineCreate(Schedule& schedule, Function&& f, Args&&... args) {
 }
 // 让出执行权，只能在从协程中调用
 void CoroutineYield(Schedule& schedule);
-// 恢复从协程的调用，只能在主协程中调用
+// 恢复一个从协程的调用，只能在主协程中调用
 int CoroutineResume(Schedule& schedule);
+// 恢复所有可以恢复的从协程的调用一遍，只能在主协程中调用
+int CoroutineResumeAll(Schedule& schedule);
 // 恢复指定从协程的调用，只能在主协程中调用
 int CoroutineResumeById(Schedule& schedule, int id);
 
@@ -101,7 +105,7 @@ void ScheduleClean(Schedule& schedule);
 // 互斥量初始化
 void CoMutexInit(Schedule& schedule, CoMutex& mutex);
 // 互斥量锁定
-void CoMutexLock(Schedule& schedule, CoMutex& mutex);
+void CoMutexLock(Schedule& schedule, CoMutex& mutex, bool debug = false);
 // 互斥量解锁
 void CoMutexUnLock(Schedule& schedule, CoMutex& mutex);
 }  // namespace MyCoroutine
