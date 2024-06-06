@@ -46,6 +46,7 @@ typedef struct Coroutine {
 // 协程互斥量
 typedef struct CoMutex {
   int64_t id;  // 互斥锁id
+  int cid;  // 当前持有互斥锁的从协程id
   bool lock;  // true表示被锁定，false表示被解锁
   std::unordered_set<int> suspend_id_set;  // 被挂起的从协程id查重集合
   std::list<int> suspend_id_list;  // 因为等待互斥量而被挂起的从协程id列表
@@ -105,7 +106,7 @@ void ScheduleClean(Schedule& schedule);
 // 互斥量初始化
 void CoMutexInit(Schedule& schedule, CoMutex& mutex);
 // 互斥量锁定
-void CoMutexLock(Schedule& schedule, CoMutex& mutex, bool debug = false);
+void CoMutexLock(Schedule& schedule, CoMutex& mutex);
 // 互斥量解锁
 void CoMutexUnLock(Schedule& schedule, CoMutex& mutex);
 }  // namespace MyCoroutine
