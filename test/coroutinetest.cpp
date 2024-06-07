@@ -62,6 +62,7 @@ TEST_CASE(Mutex_SingleCoroutine) {
   while (ScheduleRunning(schedule)) {
     CoroutineResume(schedule);
   }
+  CoMutexClear(schedule, mutex);
   ScheduleClean(schedule);
   ASSERT_EQ(sum, 666);
   std::cout << "sum = " << sum << std::endl;
@@ -126,7 +127,7 @@ TEST_CASE(Mutex_Priority) {
     ScheduleRun(schedule);
     CoroutineResumeAll(schedule);
   }
-
+  CoMutexClear(schedule, mutex);
   ScheduleClean(schedule);
   ASSERT_EQ(sum, 1);
   std::cout << "sum = " << sum << std::endl;
@@ -156,6 +157,7 @@ TEST_CASE(Mutex_Multi) {
     ScheduleRun(schedule);
     CoroutineResumeAll(schedule);
   }
+  CoMutexClear(schedule, mutex);
   ScheduleClean(schedule);
   ASSERT_EQ(sum, 100000);
   std::cout << "sum = " << sum << std::endl;
@@ -195,6 +197,7 @@ TEST_CASE(Mutex_FailureFirstLock) {
   ASSERT_EQ(sum, 2);  // 值被修改成2
   CoroutineResumeById(schedule, id1);
   ASSERT_EQ(sum, 4);  // 值被修改成2
+  CoMutexClear(schedule, mutex);
   ScheduleClean(schedule);
 }
 
@@ -213,6 +216,7 @@ TEST_CASE(Mutex_AllLockFailure) {
     CoroutineResumeById(schedule, id1);  // 锁定失败
     ASSERT_EQ(sum, 1);
   }
+  CoMutexClear(schedule, mutex);
   ScheduleClean(schedule);
 }
 
@@ -232,5 +236,6 @@ TEST_CASE(Mutex_LockReEntry) {
   ASSERT_FALSE(ScheduleRunning(schedule));
   int id = CoroutineCreate(schedule, MutexLockReEntry, std::ref(schedule), std::ref(mutex), std::ref(sum));
   CoroutineResumeById(schedule, id);  // 锁定成功
+  CoMutexClear(schedule, mutex);
   ScheduleClean(schedule);
 }
