@@ -29,6 +29,17 @@ enum State {
   Suspend = 4,  // 挂起
 };
 
+/* 条件变量的状态，条件变量的状态转移如下：
+ * notify_none -> notify_one,notify_all
+ * notify_one -> notify_all
+ * notify_all -> notify_all
+ */
+enum CondState {
+  NotifyNone = 1,  // 无通知
+  NotifyOne = 2,  // 通知一个等待者
+  NotifyAll = 3,  // 通知所有等待者
+};
+
 enum ResumeResult {
   NotRunnable = 1,  // 无可运行的协程
   Success = 2,  // 成功唤醒一个挂起状态的协程
@@ -45,7 +56,7 @@ typedef struct Coroutine {
 
 // 协程互斥量
 typedef struct CoMutex {
-  int64_t id;  // 互斥锁id
+  uint64_t id;  // 互斥锁id
   int cid;  // 当前持有互斥锁的从协程id
   bool lock;  // true表示被锁定，false表示被解锁
   std::unordered_set<int> suspend_id_set;  // 被挂起的从协程id查重集合
@@ -54,9 +65,23 @@ typedef struct CoMutex {
 
 // 协程互斥量管理器
 typedef struct CoMutexManage {
-  int64_t alloc_id;  // 要分配的互斥量id
-  std::unordered_map<int64_t, CoMutex*> mutexs;
+  uint64_t alloc_id;  // 要分配的互斥量id
+  std::unordered_map<uint64_t, CoMutex*> mutexs;
 } CoMutexManage;
+
+// 协程条件变量
+typedef struct CoCond {
+  uint64_t id;  // 条件变量id
+  CondState state;  // 条件变量状态
+  std::unordered_set<int> suspend_id_set;  // 被挂起的从协程id查重集合
+  std::list<int> suspend_id_list;  // 因为等待条件变量而被挂起的从协程id列表
+} CoCond;
+
+// 协程条件变量管理器
+typedef struct CoCondManage {
+  uint64_t alloc_id;  // 要分配的条件变量id
+  std::unordered_map<uint64_t, CoCond*> conds;
+} CoCondManage;
 
 // 协程调度器
 typedef struct Schedule {
@@ -67,6 +92,7 @@ typedef struct Schedule {
   Coroutine* coroutines[kMaxCoroutineSize];  // 从协程数组池
   int stackSize;  // 协程栈的大小，单位字节
   CoMutexManage mutexManage;  // 互斥量管理
+  CoCondManage condManage;  // 条件变量管理
 } Schedule;
 
 // 协程初始化
@@ -105,8 +131,20 @@ void ScheduleRun(Schedule& schedule);
 void ScheduleClean(Schedule& schedule);
 // 互斥量初始化
 void CoMutexInit(Schedule& schedule, CoMutex& mutex);
+// 互斥量初清理
+void CoMutexClear(Schedule& schedule, CoMutex& mutex);
 // 互斥量锁定
 void CoMutexLock(Schedule& schedule, CoMutex& mutex);
 // 互斥量解锁
 void CoMutexUnLock(Schedule& schedule, CoMutex& mutex);
+// 条件变量初始化
+void CoCondInit(Schedule& schedule, CoCond& cond);
+// 条件变量清理
+void CoCondClear(Schedule& schedule, CoCond& cond);
+// 条件变量wait
+void CoCondWait(Schedule& schedule, CoCond& cond);
+// 条件变量notify_one
+void CoCondNotifyOne(Schedule& schedule, CoCond& cond);
+// 条件变量notify_all
+void CoCondNotifyAll(Schedule& schedule, CoCond& cond);
 }  // namespace MyCoroutine

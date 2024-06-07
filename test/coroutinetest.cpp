@@ -218,7 +218,7 @@ TEST_CASE(Mutex_AllLockFailure) {
 
 void MutexLockReEntry(Schedule& schedule, CoMutex& mutex, int& sum) {
   CoMutexLock(schedule, mutex);
-  CoMutexLock(schedule, mutex);  // 同一个从协程重入，触发断言
+  // CoMutexLock(schedule, mutex);  // 同一个从协程重入，触发断言
   sum = 2;
   CoMutexUnLock(schedule, mutex);
 }

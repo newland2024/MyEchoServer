@@ -117,6 +117,7 @@ int ScheduleInit(Schedule& schedule, int coroutineCnt, int stackSize) {
     schedule.coroutines[i]->stack = nullptr;
   }
   schedule.mutexManage.alloc_id = 0;  // 互斥量id从0开始分配
+  schedule.condManage.alloc_id = 0;  // 条件变量id从0开始分配
   return 0;
 }
 
@@ -147,6 +148,28 @@ void ScheduleRun(Schedule& schedule) {
     item.second->suspend_id_set.erase(id);
     CoroutineResumeById(schedule, id);  // 每次只能唤醒等待队列中的一个从协程，采用先进先出的策略
   }
+  for (const auto& item : schedule.condManage.conds) {
+    if (item.second->state == NotifyNone) continue;  // 没有通知，不需要互相等待的从协程
+    // 通知了，但是没有挂起的从协程，也不需要唤醒，注意这里不调整通知的状态
+    if (item.second->suspend_id_list.size() <= 0) continue;
+    // 有挂起的协程才调整通知的状态
+    if (item.second->state == NotifyOne) {
+      int id = item.second->suspend_id_list.front();
+      item.second->suspend_id_list.pop_front();
+      item.second->suspend_id_set.erase(id);
+      CoroutineResumeById(schedule, id);  // 每次只能唤醒等待队列中的一个从协程，采用先进先出的策略
+    } else if (item.second->state == NotifyAll) {
+      // 唤醒所有等待的从协程
+      for (const auto& id : item.second->suspend_id_list) {
+        CoroutineResumeById(schedule, id);
+      }
+      item.second->suspend_id_set.clear();
+      item.second->suspend_id_list.clear();
+    } else {
+      assert(0);
+    }
+    item.second->state = NotifyNone;
+  }
 }
 
 void CoMutexInit(Schedule& schedule, CoMutex& mutex) {
@@ -154,8 +177,11 @@ void CoMutexInit(Schedule& schedule, CoMutex& mutex) {
   mutex.lock = false;
   mutex.cid = schedule.runningCoroutineId;
   schedule.mutexManage.alloc_id++;
+  assert(schedule.mutexManage.mutexs.find(mutex.id) == schedule.mutexManage.mutexs.end());
   schedule.mutexManage.mutexs[mutex.id] = &mutex;
 }
+
+void CoMutexClear(Schedule& schedule, CoMutex& mutex) { schedule.mutexManage.mutexs.erase(mutex.id); }
 
 void CoMutexLock(Schedule& schedule, CoMutex& mutex) {
   while (true) {
@@ -183,4 +209,32 @@ void CoMutexUnLock(Schedule& schedule, CoMutex& mutex) {
   mutex.lock = false;  // 设置层false即可，后续由调度器schedule去激活那些被挂起的从协程
   mutex.cid = kInvalidRoutineId;
 }
+
+void CoCondInit(Schedule& schedule, CoCond& cond) {
+  cond.id = schedule.condManage.alloc_id;
+  cond.state = NotifyNone;
+  schedule.condManage.alloc_id++;
+  schedule.condManage.conds[cond.id] = &cond;
+}
+
+void CoCondClear(Schedule& schedule, CoCond& cond) { schedule.condManage.conds.erase(cond.id); }
+
+void CoCondWait(Schedule& schedule, CoCond& cond, std::function<bool()> pred) {
+  while (true) {
+    if (pred()) {  // 条件成立可以直接返回
+      return;
+    }
+    // 更新因为的等待条件变量而被挂起的从协程id
+    if (cond.suspend_id_set.find(schedule.runningCoroutineId) == cond.suspend_id_set.end()) {
+      cond.suspend_id_set.insert(schedule.runningCoroutineId);
+      cond.suspend_id_list.push_back(schedule.runningCoroutineId);
+    }
+    // 从协程让出执行权
+    CoroutineYield(schedule);
+  }
+}
+
+void CoCondNotifyOne(Schedule& schedule, CoCond& cond) { cond.state = NotifyOne; }
+
+void CoCondNotifyAll(Schedule& schedule, CoCond& cond) { cond.state = NotifyAll; }
 }  // namespace MyCoroutine
