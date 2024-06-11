@@ -138,7 +138,7 @@ void CoMutexUnLock(Schedule& schedule, CoMutex& mutex);
 void CoCondInit(Schedule& schedule, CoCond& cond);
 // 条件变量清理
 void CoCondClear(Schedule& schedule, CoCond& cond);
-// 条件变量wait
+// 条件变量wait，支持设置超时时间的版本，需要配合Reactor模型的定时器功能来实现。
 void CoCondWait(Schedule& schedule, CoCond& cond, std::function<bool()> pred);
 // 条件变量notify_one
 void CoCondNotifyOne(Schedule& schedule, CoCond& cond);

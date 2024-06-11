@@ -240,15 +240,36 @@ TEST_CASE(Mutex_LockReEntry) {
   ScheduleClean(schedule);
 }
 
-TEST_CASE(Cond_Wait_PredTrue) {
-  // TODO
-}
-
-void CondWaitValid(Schedule& schedule, CoCond& cond, std::list<int>& q, int& value) {
+void CondWaitPredTrue(Schedule& schedule, CoCond& cond, std::list<int>& q, int& value) {
   CoCondWait(schedule, cond, [&q]() { return q.size() > 0; });
   value = q.front();
   q.pop_front();
   std::cout << "cond_wait q.front() = " << value << std::endl;
+}
+
+TEST_CASE(Cond_Wait_PredTrue) {
+  Schedule schedule;
+  ScheduleInit(schedule, 1024);
+  CoCond cond;
+  std::list<int> q;
+  int value = 0;
+  q.push_back(200);
+  CoCondInit(schedule, cond);
+  ASSERT_FALSE(ScheduleRunning(schedule));
+  int id =
+      CoroutineCreate(schedule, CondWaitPredTrue, std::ref(schedule), std::ref(cond), std::ref(q), std::ref(value));
+  CoroutineResumeById(schedule, id);  // 等待条件变量通知
+  CoCondClear(schedule, cond);
+  ScheduleClean(schedule);
+  ASSERT_EQ(value, 200);
+}
+
+void CondWaitValid(Schedule& schedule, CoCond& cond, std::list<int>& q, int& value, int& awake_count) {
+  CoCondWait(schedule, cond, [&q]() { return q.size() > 0; });
+  value += q.front();
+  awake_count++;
+  std::cout << "cond_wait q.front() = " << q.front() << ", awake_count = " << awake_count << std::endl;
+  q.pop_front();
 }
 
 void CondWaitValidNotifyOne(Schedule& schedule, CoCond& cond, std::list<int>& q) {
@@ -258,7 +279,48 @@ void CondWaitValidNotifyOne(Schedule& schedule, CoCond& cond, std::list<int>& q)
   std::cout << "cond_notify_one q insert value = " << value << std::endl;
 }
 
+void CondWaitValidNotifyAll(Schedule& schedule, CoCond& cond, std::list<int>& q) {
+  int value = 100;
+  q.push_back(value);
+  q.push_back(value);
+  CoCondNotifyAll(schedule, cond);
+  std::cout << "cond_notify_all q insert value = " << value << std::endl;
+}
+
 TEST_CASE(Cond_Wait_Valid) {
+  Schedule schedule;
+  ScheduleInit(schedule, 1024);
+  CoCond cond;
+  std::list<int> q;
+  int value = 0;
+  int awake_count = 0;
+  CoCondInit(schedule, cond);
+  ASSERT_FALSE(ScheduleRunning(schedule));
+  int id = CoroutineCreate(schedule, CondWaitValid, std::ref(schedule), std::ref(cond), std::ref(q), std::ref(value),
+                           std::ref(awake_count));
+  int id1 = CoroutineCreate(schedule, CondWaitValid, std::ref(schedule), std::ref(cond), std::ref(q), std::ref(value),
+                            std::ref(awake_count));
+  int id2 = CoroutineCreate(schedule, CondWaitValidNotifyOne, std::ref(schedule), std::ref(cond), std::ref(q));
+  CoroutineResumeById(schedule, id);  // 等待条件变量通知
+  CoroutineResumeById(schedule, id1);  // 等待条件变量通知
+  CoroutineResumeById(schedule, id2);  // 触发条件变量的通知
+
+  ScheduleRun(schedule);
+  CoCondClear(schedule, cond);
+  ScheduleClean(schedule);
+  ASSERT_EQ(value, 100);
+  ASSERT_EQ(awake_count, 1);
+}
+
+void CondWaitInValid(Schedule& schedule, CoCond& cond, std::list<int>& q, int& value) {
+  std::cout << "CondWaitInValid call " << std::endl;
+  CoCondWait(schedule, cond, [&q]() { return q.size() > 0; });
+  value = q.front();
+  q.pop_front();
+  std::cout << "cond_wait q.front() = " << value << std::endl;
+}
+
+TEST_CASE(Cond_Wait_InValid) {
   Schedule schedule;
   ScheduleInit(schedule, 1024);
   CoCond cond;
@@ -266,12 +328,39 @@ TEST_CASE(Cond_Wait_Valid) {
   int value = 0;
   CoCondInit(schedule, cond);
   ASSERT_FALSE(ScheduleRunning(schedule));
-  int id = CoroutineCreate(schedule, CondWaitValid, std::ref(schedule), std::ref(cond), std::ref(q), std::ref(value));
-  int id1 = CoroutineCreate(schedule, CondWaitValidNotifyOne, std::ref(schedule), std::ref(cond), std::ref(q));
+  int id = CoroutineCreate(schedule, CondWaitInValid, std::ref(schedule), std::ref(cond), std::ref(q), std::ref(value));
   CoroutineResumeById(schedule, id);  // 等待条件变量通知
-  CoroutineResumeById(schedule, id1);  // 触发条件变量的通知
+  CoCondNotifyOne(schedule, cond);
+  int count = 0;
+  while (count++ <= 100) {
+    ScheduleRun(schedule);  // 连续唤醒100次，因为条件不成立，则CoCondWait无法返回
+  }
+  CoCondClear(schedule, cond);
+  ScheduleClean(schedule);
+  ASSERT_EQ(value, 0);
+}
+
+TEST_CASE(Cond_Wait_Notify_All) {
+  Schedule schedule;
+  ScheduleInit(schedule, 1024);
+  CoCond cond;
+  std::list<int> q;
+  int value = 0;
+  int awake_count = 0;
+  CoCondInit(schedule, cond);
+  ASSERT_FALSE(ScheduleRunning(schedule));
+  int id = CoroutineCreate(schedule, CondWaitValid, std::ref(schedule), std::ref(cond), std::ref(q), std::ref(value),
+                           std::ref(awake_count));
+  int id1 = CoroutineCreate(schedule, CondWaitValid, std::ref(schedule), std::ref(cond), std::ref(q), std::ref(value),
+                            std::ref(awake_count));
+  int id2 = CoroutineCreate(schedule, CondWaitValidNotifyAll, std::ref(schedule), std::ref(cond), std::ref(q));
+  CoroutineResumeById(schedule, id);  // 等待条件变量通知
+  CoroutineResumeById(schedule, id1);  // 等待条件变量通知
+  CoroutineResumeById(schedule, id2);  // 触发条件变量的通知
+
   ScheduleRun(schedule);
   CoCondClear(schedule, cond);
   ScheduleClean(schedule);
-  ASSERT_EQ(value, 100);
+  ASSERT_EQ(value, 200);
+  ASSERT_EQ(awake_count, 2);
 }
