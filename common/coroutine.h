@@ -71,16 +71,13 @@ typedef struct CoMutexManage {
 
 // 协程条件变量
 typedef struct CoCond {
-  uint64_t id;  // 条件变量id
   CondState state;  // 条件变量状态
   std::unordered_set<int> suspend_id_set;  // 被挂起的从协程id查重集合
-  std::list<int> suspend_id_list;  // 因为等待条件变量而被挂起的从协程id列表
 } CoCond;
 
 // 协程条件变量管理器
 typedef struct CoCondManage {
-  uint64_t alloc_id;  // 要分配的条件变量id
-  std::unordered_map<uint64_t, CoCond*> conds;
+  std::unordered_set<CoCond*> conds;
 } CoCondManage;
 
 // 协程调度器
@@ -142,7 +139,7 @@ void CoCondInit(Schedule& schedule, CoCond& cond);
 // 条件变量清理
 void CoCondClear(Schedule& schedule, CoCond& cond);
 // 条件变量wait
-void CoCondWait(Schedule& schedule, CoCond& cond);
+void CoCondWait(Schedule& schedule, CoCond& cond, std::function<bool()> pred);
 // 条件变量notify_one
 void CoCondNotifyOne(Schedule& schedule, CoCond& cond);
 // 条件变量notify_all

@@ -239,3 +239,39 @@ TEST_CASE(Mutex_LockReEntry) {
   CoMutexClear(schedule, mutex);
   ScheduleClean(schedule);
 }
+
+TEST_CASE(Cond_Wait_PredTrue) {
+  // TODO
+}
+
+void CondWaitValid(Schedule& schedule, CoCond& cond, std::list<int>& q, int& value) {
+  CoCondWait(schedule, cond, [&q]() { return q.size() > 0; });
+  value = q.front();
+  q.pop_front();
+  std::cout << "cond_wait q.front() = " << value << std::endl;
+}
+
+void CondWaitValidNotifyOne(Schedule& schedule, CoCond& cond, std::list<int>& q) {
+  int value = 100;
+  q.push_back(value);
+  CoCondNotifyOne(schedule, cond);
+  std::cout << "cond_notify_one q insert value = " << value << std::endl;
+}
+
+TEST_CASE(Cond_Wait_Valid) {
+  Schedule schedule;
+  ScheduleInit(schedule, 1024);
+  CoCond cond;
+  std::list<int> q;
+  int value = 0;
+  CoCondInit(schedule, cond);
+  ASSERT_FALSE(ScheduleRunning(schedule));
+  int id = CoroutineCreate(schedule, CondWaitValid, std::ref(schedule), std::ref(cond), std::ref(q), std::ref(value));
+  int id1 = CoroutineCreate(schedule, CondWaitValidNotifyOne, std::ref(schedule), std::ref(cond), std::ref(q));
+  CoroutineResumeById(schedule, id);  // 等待条件变量通知
+  CoroutineResumeById(schedule, id1);  // 触发条件变量的通知
+  ScheduleRun(schedule);
+  CoCondClear(schedule, cond);
+  ScheduleClean(schedule);
+  ASSERT_EQ(value, 100);
+}
