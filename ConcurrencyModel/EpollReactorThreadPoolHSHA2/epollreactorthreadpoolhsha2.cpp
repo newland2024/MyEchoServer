@@ -26,8 +26,6 @@ std::queue<Conn *> Queue;
 sem_t Empty; // 计数信号量，表示空缓冲区的数量
 sem_t Full;  // 计数信号量，表示满缓冲区的数量
 
-uint32_t kBufferSize = 50000;
-
 void pushInQueue(Conn *conn) {
   // 等待空缓冲区
   sem_wait(&Empty);
@@ -139,13 +137,14 @@ void ioHandler(string ip, int64_t port) {
 }
 
 void usage() {
-  cout << "EpollReactorThreadPoolHSHA -ip 0.0.0.0 -port 1688 -io 3 -worker 8 -direct" << endl;
+  cout << "EpollReactorThreadPoolHSHA2 -ip 0.0.0.0 -port 1688 -io 3 -worker 8 -queue_buffer_size 50000 -direct" << endl;
   cout << "options:" << endl;
   cout << "    -h,--help      print usage" << endl;
   cout << "    -ip,--ip       listen ip" << endl;
   cout << "    -port,--port   listen port" << endl;
   cout << "    -io,--io       io thread count" << endl;
   cout << "    -worker,--worker   worker thread count" << endl;
+  cout << "    -queue_buffer_size,--queue_buffer_size  queue buffer size" << endl;
   cout << "    -direct,--direct   direct send response data by worker thread" << endl;
   cout << endl;
 }
@@ -155,11 +154,13 @@ int main(int argc, char *argv[]) {
   int64_t port;
   int64_t io_count;
   int64_t worker_count;
+  int64_t queue_buffer_size;
   bool is_direct;
   CmdLine::StrOptRequired(&ip, "ip");
   CmdLine::Int64OptRequired(&port, "port");
   CmdLine::Int64OptRequired(&io_count, "io");
   CmdLine::Int64OptRequired(&worker_count, "worker");
+  CmdLine::Int64OptRequired(&queue_buffer_size, "queue_buffer_size");
   CmdLine::BoolOpt(&is_direct, "direct");
   CmdLine::SetUsage(usage);
   CmdLine::Parse(argc, argv);
@@ -167,8 +168,8 @@ int main(int argc, char *argv[]) {
   io_count = io_count > GetNProcs() ? GetNProcs() : io_count;
   worker_count = worker_count > GetNProcs() ? GetNProcs() : worker_count;
   // 初始化信号量
-  sem_init(&Empty, 0, kBufferSize); // 初始空缓冲区数量为kBufferSize
-  sem_init(&Full, 0, 0);      // 初始满缓冲区数量为0
+  sem_init(&Empty, 0, queue_buffer_size); // 初始空缓冲区大小
+  sem_init(&Full, 0, 0);      // 初始满缓冲区大小
   for (int i = 0; i < worker_count; i++) {  // 创建worker线程
     std::thread(workerHandler, is_direct).detach();  // 这里需要调用detach，让创建的线程独立运行
   }

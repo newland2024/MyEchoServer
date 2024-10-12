@@ -126,7 +126,7 @@ void ioHandler(string ip, int64_t port) {
 }
 
 void usage() {
-  cout << "EpollReactorThreadPoolHSHA -ip 0.0.0.0 -port 1688 -io 3 -worker 8 -direct" << endl;
+  cout << "EpollReactorThreadPoolHSHA1 -ip 0.0.0.0 -port 1688 -io 3 -worker 8 -direct" << endl;
   cout << "options:" << endl;
   cout << "    -h,--help      print usage" << endl;
   cout << "    -ip,--ip       listen ip" << endl;
