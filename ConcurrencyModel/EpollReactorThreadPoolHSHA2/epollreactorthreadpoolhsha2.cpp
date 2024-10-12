@@ -40,11 +40,12 @@ void pushInQueue(Conn *conn) {
 }
 
 Conn *getQueueData() {
+  Conn *conn = nullptr;
   // 等待满缓冲区
   sem_wait(&Full);
   {
     std::lock_guard<std::mutex> locker(Mutex);
-    Conn *conn = Queue.front();
+    conn = Queue.front();
     Queue.pop();
   }
   // 增加空缓冲区的数量
