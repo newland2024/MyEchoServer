@@ -23,31 +23,31 @@ using namespace MyEcho;
 std::mutex Mutex;
 std::queue<Conn *> Queue;
 
-sem_t Empty; // 计数信号量，表示空缓冲区的数量
-sem_t Full;  // 计数信号量，表示满缓冲区的数量
+sem_t Idle; // 计数信号量，表示缓冲区空闲的数据
+sem_t Fill;  // 计数信号量，表示缓冲区填充的数据
 
 void pushInQueue(Conn *conn) {
   // 等待空缓冲区
-  sem_wait(&Empty);
+  sem_wait(&Idle);
   {
     std::lock_guard<std::mutex> locker(Mutex);
     Queue.push(conn);
   }
   // 增加满缓冲区的数量
-  sem_post(&Full);
+  sem_post(&Fill);
 }
 
 Conn *getQueueData() {
   Conn *conn = nullptr;
   // 等待满缓冲区
-  sem_wait(&Full);
+  sem_wait(&Fill);
   {
     std::lock_guard<std::mutex> locker(Mutex);
     conn = Queue.front();
     Queue.pop();
   }
   // 增加空缓冲区的数量
-  sem_post(&Empty);
+  sem_post(&Idle);
   return conn;
 }
 
@@ -168,8 +168,8 @@ int main(int argc, char *argv[]) {
   io_count = io_count > GetNProcs() ? GetNProcs() : io_count;
   worker_count = worker_count > GetNProcs() ? GetNProcs() : worker_count;
   // 初始化信号量
-  sem_init(&Empty, 0, queue_buffer_size); // 初始空缓冲区大小
-  sem_init(&Full, 0, 0);      // 初始满缓冲区大小
+  sem_init(&Idle, 0, queue_buffer_size); // 初始空缓冲区大小
+  sem_init(&Fill, 0, 0);      // 初始满缓冲区大小
   for (int i = 0; i < worker_count; i++) {  // 创建worker线程
     std::thread(workerHandler, is_direct).detach();  // 这里需要调用detach，让创建的线程独立运行
   }
