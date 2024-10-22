@@ -11,7 +11,7 @@
 #include <iostream>
 
 #include "../../common/cmdline.h"
-#include "../../common/coroutine.h"
+#include "../../Coroutine/mycoroutine.h"
 #include "../../common/epollctl.hpp"
 
 using namespace std;
@@ -47,7 +47,7 @@ void handlerClient(EventData *event_data) {
       if (ret < 0) {
         if (EINTR == errno) continue;  // 被中断，可以重启读操作
         if (EAGAIN == errno or EWOULDBLOCK == errno) {
-          MyCoroutine::CoroutineYield(*event_data->schedule_);  // 让出cpu，切换到主协程，等待下一次数据可读
+          event_data->schedule_->CoroutineYield();  // 让出cpu，切换到主协程，等待下一次数据可读
           continue;
         }
         perror("read failed");
@@ -72,7 +72,7 @@ void handlerClient(EventData *event_data) {
       if (ret < 0) {
         if (EINTR == errno) continue;  // 被中断，可以重启写操作
         if (EAGAIN == errno or EWOULDBLOCK == errno) {
-          MyCoroutine::CoroutineYield(*event_data->schedule_);  // 让出cpu，切换到主协程，等待下一次数据可写
+          event_data->schedule_->CoroutineYield();  // 让出cpu，切换到主协程，等待下一次数据可写
           continue;
         }
         perror("write failed");
@@ -118,8 +118,7 @@ int main(int argc, char *argv[]) {
   EventData event_data(sock_fd, epoll_fd);
   SetNotBlock(sock_fd);
   AddReadEvent(epoll_fd, sock_fd, &event_data);
-  MyCoroutine::Schedule schedule;
-  MyCoroutine::ScheduleInit(schedule, 5000);  // 协程池初始化
+  MyCoroutine::Schedule schedule(5000);  // 协程池初始化
   int msec = -1;
   while (true) {
     int num = epoll_wait(epoll_fd, events, 2048, msec);
@@ -144,10 +143,10 @@ int main(int argc, char *argv[]) {
       }
       if (event_data->cid_ == MyCoroutine::kInvalidRoutineId) {  // 第一次事件，则创建协程
         event_data->schedule_ = &schedule;
-        event_data->cid_ = MyCoroutine::CoroutineCreate(schedule, handlerClient, event_data);  // 创建协程
-        MyCoroutine::CoroutineResumeById(schedule, event_data->cid_);
+        event_data->cid_ = schedule.CoroutineCreate(handlerClient, event_data);  // 创建协程
+        schedule.CoroutineResume(event_data->cid_);
       } else {
-        MyCoroutine::CoroutineResumeById(schedule, event_data->cid_);  // 唤醒之前主动让出cpu的协程
+        schedule.CoroutineResume(event_data->cid_);  // 唤醒之前主动让出cpu的协程
       }
     }
   }
