@@ -24,7 +24,7 @@ std::mutex Mutex;
 std::condition_variable Cond;
 std::queue<Conn *> Queue;
 
-void pushInQueue(Conn *conn) {
+void pushToQueue(Conn *conn) {
   {
     std::unique_lock<std::mutex> locker(Mutex);
     Queue.push(conn);
@@ -106,7 +106,7 @@ void ioHandler(string ip, int64_t port) {
           continue;
         }
         if (conn->OneMessage()) {
-          pushInQueue(conn);  // 入共享输入队列，有锁
+          pushToQueue(conn);  // 入共享输入队列，有锁
         } else {
           ReStartReadEvent(conn);  // 还没收到完整的请求，则重新启动可读事件的监听，携带oneshot选项
         }

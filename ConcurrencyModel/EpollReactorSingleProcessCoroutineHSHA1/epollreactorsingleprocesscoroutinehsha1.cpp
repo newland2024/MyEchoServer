@@ -28,7 +28,7 @@ struct EventData {
 
 void EchoDeal(const std::string req_message, std::string &resp_message) { resp_message = req_message; }
 
-void Producer(MyCoroutine::Schedule &schedule, MyCoroutine::Channel<EventData> &channel, EventData *event_data) {
+void Producer(MyCoroutine::Channel<EventData> &channel, EventData *event_data) {
   ClearEvent(event_data->epoll_fd_, event_data->fd_, false); 
   channel.Send(event_data);
 }
@@ -100,17 +100,14 @@ void usage() {
   cout << "    -h,--help      print usage" << endl;
   cout << "    -ip,--ip       listen ip" << endl;
   cout << "    -port,--port   listen port" << endl;
-  cout << "    -d,--d         dynamic epoll time out" << endl;
   cout << endl;
 }
 
 int main(int argc, char *argv[]) {
   string ip;
   int64_t port;
-  bool is_dynamic_time_out{false};
   CmdLine::StrOptRequired(&ip, "ip");
   CmdLine::Int64OptRequired(&port, "port");
-  CmdLine::BoolOpt(&is_dynamic_time_out, "d");
   CmdLine::SetUsage(usage);
   CmdLine::Parse(argc, argv);
   int sock_fd = CreateListenSocket(ip, port, false);
@@ -123,13 +120,11 @@ int main(int argc, char *argv[]) {
     perror("epoll_create failed");
     return -1;
   }
-  cout << "is_dynamic_time_out = " << is_dynamic_time_out << endl;
   EventData event_data(sock_fd, epoll_fd);
   SetNotBlock(sock_fd);
   AddReadEvent(epoll_fd, sock_fd, &event_data);
   MyCoroutine::Schedule schedule(5000);  // 协程池初始化
   MyCoroutine::Channel<EventData> channel(schedule, 3000);  // channel初始化，分配3000的缓存
-
   for (int i = 0; i < 3000; i++) {
     int cid = schedule.CoroutineCreate(Consumer, std::ref(schedule), std::ref(channel));
     schedule.CoroutineResume(cid);
@@ -146,7 +141,7 @@ int main(int argc, char *argv[]) {
       msec = -1;  // 大概率被挂起，故这里超时时间设置为-1
       continue;
     }
-    if (is_dynamic_time_out) msec = 0;  // 下次大概率还有事件，故msec设置为0
+    msec = 0;  // 下次大概率还有事件，故msec设置为0
     for (int i = 0; i < num; i++) {
       EventData *event_data = (EventData *)events[i].data.ptr;
       if (event_data->fd_ == sock_fd) {
@@ -159,9 +154,8 @@ int main(int argc, char *argv[]) {
       }
       if (event_data->cid_ == MyCoroutine::kInvalidCid) {  // 第一次事件，则创建协程
         event_data->schedule_ = &schedule;
-        event_data->cid_ =
-            schedule.CoroutineCreate(Producer, std::ref(schedule),
-                                     std::ref(channel), event_data); // 创建协程
+        event_data->cid_ = schedule.CoroutineCreate(Producer, std::ref(channel),
+                                                    event_data); // 创建协程
         schedule.CoroutineResume(event_data->cid_);
       } else {
         schedule.CoroutineResume(event_data->cid_);  // 唤醒之前主动让出cpu的协程
