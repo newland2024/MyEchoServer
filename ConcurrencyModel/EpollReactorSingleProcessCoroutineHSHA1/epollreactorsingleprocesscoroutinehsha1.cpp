@@ -35,7 +35,7 @@ void Producer(MyCoroutine::Schedule &schedule, MyCoroutine::Channel<EventData> &
 
 void Consumer(MyCoroutine::Schedule &schedule, MyCoroutine::Channel<EventData> &channel) {
   EventData * event_data = channel.Receive();
-  event_data->cid_ = schedule.CurrentCid();
+  event_data->cid_ = schedule.CurrentCid();  // 注意，这里需要更新cid_，之前的cid_是Producer协程的id，需要更新成Consumer的协程id
   auto releaseConn = [&event_data]() {
     ClearEvent(event_data->epoll_fd_, event_data->fd_);
     delete event_data;  // 释放内存
