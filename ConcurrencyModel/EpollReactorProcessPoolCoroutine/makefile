@@ -12,9 +12,9 @@ LDFLAGS =
 # 头文件目录
 INCFLAGS =
 # 源文件目录
-SRCDIRS = .
+SRCDIRS = . ../../Coroutine
 # 单独的源文件
-ALONE_SOURCES = ../../common/cmdline.cpp ../../common/coroutine.cpp
+ALONE_SOURCES = ../../common/cmdline.cpp
 #======================= 自定义设置部分 结束 =====================#
 
 #======================= 固定设置部分 开始 =======================#
