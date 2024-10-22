@@ -21,7 +21,7 @@ struct EventData {
   EventData(int fd, int epoll_fd) : fd_(fd), epoll_fd_(epoll_fd){};
   int fd_{0};
   int epoll_fd_{0};
-  int cid_{MyCoroutine::kInvalidRoutineId};
+  int cid_{MyCoroutine::kInvalidCid};
   MyCoroutine::Schedule *schedule_{nullptr};
 };
 
@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
         });
         continue;
       }
-      if (event_data->cid_ == MyCoroutine::kInvalidRoutineId) {  // 第一次事件，则创建协程
+      if (event_data->cid_ == MyCoroutine::kInvalidCid) {  // 第一次事件，则创建协程
         event_data->schedule_ = &schedule;
         event_data->cid_ = schedule.CoroutineCreate(handlerClient, event_data);  // 创建协程
         schedule.CoroutineResume(event_data->cid_);
