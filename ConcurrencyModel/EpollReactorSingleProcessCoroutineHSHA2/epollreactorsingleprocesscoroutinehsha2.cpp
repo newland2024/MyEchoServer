@@ -30,7 +30,7 @@ void EchoDeal(const std::string req_message, std::string &resp_message) { resp_m
 
 void pushToQueue(MyCoroutine::ConditionVariable &cond, list<EventData*> &q, EventData *data) {
   q.push_back(data);
-  cond.NotifyOne();
+  cond.NotifyAll();
 }
 
 EventData *getQueueData(MyCoroutine::ConditionVariable &cond, list<EventData*> &q) {
