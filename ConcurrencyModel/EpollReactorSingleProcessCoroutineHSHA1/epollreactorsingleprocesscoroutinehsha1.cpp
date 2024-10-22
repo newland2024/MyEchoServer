@@ -95,7 +95,7 @@ void Consumer(MyCoroutine::Schedule &schedule, MyCoroutine::Channel<EventData> &
 }
 
 void usage() {
-  cout << "EpollReactorSingleProcessCoroutineHSHA1 -ip 0.0.0.0 -port 1688 -d" << endl;
+  cout << "EpollReactorSingleProcessCoroutineHSHA1 -ip 0.0.0.0 -port 1688" << endl;
   cout << "options:" << endl;
   cout << "    -h,--help      print usage" << endl;
   cout << "    -ip,--ip       listen ip" << endl;

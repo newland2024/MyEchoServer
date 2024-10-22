@@ -107,7 +107,7 @@ void Consumer(MyCoroutine::Schedule &schedule, MyCoroutine::ConditionVariable &c
 }
 
 void usage() {
-  cout << "EpollReactorSingleProcessCoroutineHSHA2 -ip 0.0.0.0 -port 1688 -d" << endl;
+  cout << "EpollReactorSingleProcessCoroutineHSHA2 -ip 0.0.0.0 -port 1688" << endl;
   cout << "options:" << endl;
   cout << "    -h,--help      print usage" << endl;
   cout << "    -ip,--ip       listen ip" << endl;
