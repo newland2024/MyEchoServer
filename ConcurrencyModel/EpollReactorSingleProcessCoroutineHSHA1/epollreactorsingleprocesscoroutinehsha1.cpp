@@ -128,7 +128,8 @@ int main(int argc, char *argv[]) {
   MyCoroutine::Channel<EventData> channel(3000);  // channel初始化，分配3000的缓存
 
   for (int i = 0; i < 3000; i++) {
-    schedule.CoroutineCreate(Consumer, std::ref(schedule), std::ref(channel));
+    int cid = schedule.CoroutineCreate(Consumer, std::ref(schedule), std::ref(channel));
+    schedule.CoroutineResume(cid);
   }
 
   int msec = -1;
