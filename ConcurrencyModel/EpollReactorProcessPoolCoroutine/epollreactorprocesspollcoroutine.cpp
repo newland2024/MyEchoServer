@@ -122,7 +122,7 @@ int handler(string ip, int64_t port) {
         });
         continue;
       }
-      if (event_data->cid_ == MyCoroutine::kInvalidRoutineId) {  // 第一次事件，则创建协程
+      if (event_data->cid_ == MyCoroutine::kInvalidCid) {  // 第一次事件，则创建协程
         event_data->schedule_ = &schedule;
         event_data->cid_ = schedule.CoroutineCreate(handlerClient, event_data);  // 创建协程
         schedule.CoroutineResume(event_data->cid_);
