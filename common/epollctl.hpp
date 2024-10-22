@@ -14,10 +14,11 @@ inline void AddReadEvent(MyEcho::Conn *conn, bool is_et = false, bool is_one_sho
   assert(epoll_ctl(conn->EpollFd(), EPOLL_CTL_ADD, conn->Fd(), &event) != -1);
 }
 
-inline void AddReadEvent(int epoll_fd, int fd, void *user_data) {
+inline void AddReadEvent(int epoll_fd, int fd, void *user_data, bool is_one_shot = false) {
   epoll_event event;
   event.data.ptr = user_data;
   event.events = EPOLLIN;
+  if (is_one_shot) event.events |= EPOLLONESHOT;
   assert(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &event) != -1);
 }
 

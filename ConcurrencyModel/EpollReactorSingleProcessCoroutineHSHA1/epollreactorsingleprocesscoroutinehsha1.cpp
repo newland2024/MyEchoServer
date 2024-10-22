@@ -29,6 +29,7 @@ struct EventData {
 void EchoDeal(const std::string req_message, std::string &resp_message) { resp_message = req_message; }
 
 void Producer(MyCoroutine::Schedule &schedule, MyCoroutine::Channel<EventData> &channel, EventData *event_data) {
+  ClearEvent(event_data->epoll_fd_, event_data->fd_, false); 
   channel.Send(event_data);
 }
 
@@ -38,6 +39,7 @@ void Consumer(MyCoroutine::Schedule &schedule, MyCoroutine::Channel<EventData> &
     ClearEvent(event_data->epoll_fd_, event_data->fd_);
     delete event_data;  // 释放内存
   };
+  AddReadEvent(event_data->epoll_fd_, event_data->fd_, event_data);  // 重新监听可读事件，不带one_shot标记
   while (true) {
     ssize_t ret = 0;
     Codec codec;
@@ -150,7 +152,7 @@ int main(int argc, char *argv[]) {
         LoopAccept(sock_fd, 2048, [epoll_fd](int client_fd) {
           EventData *event_data = new EventData(client_fd, epoll_fd);
           SetNotBlock(client_fd);
-          AddReadEvent(epoll_fd, client_fd, event_data);  // 监听可读事件
+          AddReadEvent(epoll_fd, client_fd, event_data, true);  // 监听可读事件，设置one_shot标记
         });
         continue;
       }
