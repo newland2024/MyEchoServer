@@ -32,6 +32,10 @@ class Schedule {
   }
 
   void Run();                         // 协程调度执行
+  int32_t CurrentCid() {
+    assert(not is_master_);
+    return slave_cid_;
+  }
   void CoroutineYield();              // 从协程让出cpu执行权
   void CoroutineResume(int32_t cid);  // 主协程唤醒指定的从协程
 
