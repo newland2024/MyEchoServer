@@ -125,7 +125,7 @@ int main(int argc, char *argv[]) {
   SetNotBlock(sock_fd);
   AddReadEvent(epoll_fd, sock_fd, &event_data);
   MyCoroutine::Schedule schedule(5000);  // 协程池初始化
-  MyCoroutine::Channel<EventData> channel(3000);  // channel初始化，分配3000的缓存
+  MyCoroutine::Channel<EventData> channel(schedule, 3000);  // channel初始化，分配3000的缓存
 
   for (int i = 0; i < 3000; i++) {
     int cid = schedule.CoroutineCreate(Consumer, std::ref(schedule), std::ref(channel));
