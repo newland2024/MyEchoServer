@@ -11,8 +11,8 @@
 using namespace std;
 using namespace BenchMark;
 
-constexpr char * kGreenBegin = "\033[32m";
-constexpr char * kColorEnd = "\033[0m";
+constexpr char kGreenBegin[] = "\033[32m";
+constexpr char kColorEnd[] = "\033[0m";
 
 string ip;
 int64_t port;
