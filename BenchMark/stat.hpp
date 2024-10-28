@@ -98,12 +98,12 @@ class SumStat {
   }
 
  private:
-  int32_t shm_id_{0};  // 共享内存id
-  std::atomic<int64_t>* failure_count_{nullptr};  // 失败次数
-  std::atomic<int64_t>* success_count_{nullptr};  // 成功次数
-  std::atomic<int64_t>* read_failure_count_{nullptr};  // 细分的失败统计，读失败数
-  std::atomic<int64_t>* write_failure_count_{nullptr};  // 细分的失败统计，写失败数
+  int32_t shm_id_{0};                                     // 共享内存id
+  std::atomic<int64_t>* failure_count_{nullptr};          // 失败次数
+  std::atomic<int64_t>* success_count_{nullptr};          // 成功次数
+  std::atomic<int64_t>* read_failure_count_{nullptr};     // 细分的失败统计，读失败数
+  std::atomic<int64_t>* write_failure_count_{nullptr};    // 细分的失败统计，写失败数
   std::atomic<int64_t>* connect_failure_count_{nullptr};  // 细分的失败统计，连接失败数
-  std::atomic<int64_t>* try_connect_count_{nullptr};  // 尝试连接的次数
+  std::atomic<int64_t>* try_connect_count_{nullptr};      // 尝试连接的次数
 };
 }  // namespace BenchMark

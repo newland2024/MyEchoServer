@@ -14,18 +14,9 @@ class ClientManager {
   ClientManager(const std::string& ip, int64_t port, int epoll_fd, Timer* timer, int count, const std::string& message,
                 int64_t max_req_count, bool is_debug, bool* is_running, int64_t rate_limit, SumStat* sum_stat,
                 PctStat* pct_stat)
-      : ip_(ip),
-        port_(port),
-        epoll_fd_(epoll_fd),
-        timer_(timer),
-        count_(count),
-        message_(message),
-        max_req_count_(max_req_count),
-        is_debug_(is_debug),
-        is_running_(is_running),
-        rate_limit_(rate_limit),
-        sum_stat_(sum_stat),
-        pct_stat_(pct_stat) {
+      : ip_(ip), port_(port), epoll_fd_(epoll_fd), timer_(timer), count_(count), message_(message),
+        max_req_count_(max_req_count), is_debug_(is_debug), is_running_(is_running), rate_limit_(rate_limit),
+        sum_stat_(sum_stat), pct_stat_(pct_stat) {
     temp_rate_limit_ = rate_limit_;
     clients_ = new EchoClient*[count];
     for (int i = 0; i < count; i++) {
@@ -92,20 +83,20 @@ class ClientManager {
   }
 
  private:
-  std::string ip_;  // 要压测服务监听的ip
-  int64_t port_;  // 要压测服务监听的端口
-  int epoll_fd_;  // epoll_fd
-  Timer* timer_;  // 定时器
-  EchoClient** clients_;  // 客户端连接池
-  int count_;  // 客户端连接池大小
-  std::string message_;  // 要发送的消息
-  int64_t max_req_count_;  // 最大请求次数
-  bool is_debug_;  // 是否调试模式
-  Percentile percentile_;  // 用于统计请求耗时的pctxx数值
-  bool* is_running_;  // 是否运行中
-  int64_t rate_limit_;  // 请求限流
+  std::string ip_;           // 要压测服务监听的ip
+  int64_t port_;             // 要压测服务监听的端口
+  int epoll_fd_;             // epoll_fd
+  Timer* timer_;             // 定时器
+  EchoClient** clients_;     // 客户端连接池
+  int count_;                // 客户端连接池大小
+  std::string message_;      // 要发送的消息
+  int64_t max_req_count_;    // 最大请求次数
+  bool is_debug_;            // 是否调试模式
+  Percentile percentile_;    // 用于统计请求耗时的pctxx数值
+  bool* is_running_;         // 是否运行中
+  int64_t rate_limit_;       // 请求限流
   int64_t temp_rate_limit_;  // 请求限流临时变量
-  SumStat* sum_stat_;  // 汇总统计
-  PctStat* pct_stat_;  // pct统计
+  SumStat* sum_stat_;        // 汇总统计
+  PctStat* pct_stat_;        // pct统计
 };
 }  // namespace BenchMark

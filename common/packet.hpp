@@ -28,19 +28,19 @@ class Packet {
     data_ = (uint8_t *)realloc(data_, len);
     len_ = len;
   }
-  uint8_t *Data() { return data_; }  // 原始缓冲区的开始地址
-  uint8_t *Data4Write() { return data_ + use_len_; }  // 用于写入的缓冲区开始地址
-  uint8_t *Data4Parse() { return data_ + parse_len_; }  // 用于解析的缓冲区开始地址
-  size_t UseLen() { return use_len_; }  //缓冲区已经使用的容量
-  size_t CanWriteLen() { return len_ - use_len_; }  //缓存区中还可以写入的数据长度
-  size_t NeedParseLen() { return use_len_ - parse_len_; }  //还需要解析的长度
+  uint8_t *Data() { return data_; }                        // 原始缓冲区的开始地址
+  uint8_t *Data4Write() { return data_ + use_len_; }       // 用于写入的缓冲区开始地址
+  uint8_t *Data4Parse() { return data_ + parse_len_; }     // 用于解析的缓冲区开始地址
+  size_t UseLen() { return use_len_; }                     // 缓冲区已经使用的容量
+  size_t CanWriteLen() { return len_ - use_len_; }         // 缓存区中还可以写入的数据长度
+  size_t NeedParseLen() { return use_len_ - parse_len_; }  // 还需要解析的长度
   void UpdateUseLen(size_t add_len) { use_len_ += add_len; }
   void UpdateParseLen(size_t add_len) { parse_len_ += add_len; }
 
  public:
   uint8_t *data_{nullptr};  // 二进制缓冲区
-  size_t len_{0};  // 缓冲区的总长度
-  size_t use_len_{0};  // 缓冲区中已经使用的长度
-  size_t parse_len_{0};  // 缓冲区中已经完成解析的长度
+  size_t len_{0};           // 缓冲区的总长度
+  size_t use_len_{0};       // 缓冲区中已经使用的长度
+  size_t parse_len_{0};     // 缓冲区中已经完成解析的长度
 };
 }  // namespace MyEcho

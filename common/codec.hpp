@@ -10,8 +10,8 @@
 namespace MyEcho {
 #define TINY_ECHO_HEAD_LEN 4
 enum DecodeStatus {
-  HEAD = 1,  // 解析协议头（协议体长度）
-  BODY = 2,  // 解析协议体
+  HEAD = 1,    // 解析协议头（协议体长度）
+  BODY = 2,    // 解析协议体
   FINISH = 3,  // 完成解析
 };
 
@@ -41,7 +41,7 @@ class Codec {
     pkt_.UpdateUseLen(len);
     uint8_t *data = (uint8_t *)pkt_.Data4Parse();
     uint32_t need_parse_len = pkt_.NeedParseLen();  // 还有多少字节需要解析
-    while (need_parse_len > 0) {  // 只要还有未解析的网络字节流，就持续解析
+    while (need_parse_len > 0) {                    // 只要还有未解析的网络字节流，就持续解析
       bool decode_break = false;
       if (HEAD == decode_status_) {  // 解析协议头
         decodeHead(&data, need_parse_len, decode_break);
@@ -93,8 +93,8 @@ class Codec {
 
  private:
   DecodeStatus decode_status_{HEAD};  // 当前解析状态
-  uint32_t body_len_{0};  // 当前消息的协议体长度
-  std::string *msg_{nullptr};  // 解析的消息
+  uint32_t body_len_{0};              // 当前消息的协议体长度
+  std::string *msg_{nullptr};         // 解析的消息
   Packet pkt_;
 };
 }  // namespace MyEcho
