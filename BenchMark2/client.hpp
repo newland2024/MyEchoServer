@@ -11,7 +11,7 @@ public:
   void SetCid(int32_t cid) {
     cid_ = cid;
   }
-  void Start() {
+  static void Start(Client * client) {
     // TODO
   }
 private:
