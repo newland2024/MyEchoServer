@@ -82,7 +82,7 @@ void Handler() {
 //   }
 }
 
-int main() {
+int main(int argc, char *argv[]) {
   CmdLine::StrOptRequired(&ip, "ip");
   CmdLine::Int64OptRequired(&port, "port");
   CmdLine::Int64OptRequired(&thread_count, "thread_count");
