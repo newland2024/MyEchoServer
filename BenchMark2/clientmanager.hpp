@@ -11,10 +11,7 @@ public:
       : schedule_(schedule), client_count_(client_count) {
     clients_ = new Client *[client_count];
     for (int i = 0; i < client_count_; i++) {
-      
-      clients_[i] = new Client(ip, port);
-      int32_t cid = schedule.CoroutineCreate(Client::Start, clients_[i]);
-      clients_[i]->SetCid(cid);
+      clients_[i] = new Client(schedule, ip, port);
     }
   }
   ~ClientManager() {

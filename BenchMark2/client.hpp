@@ -1,27 +1,30 @@
 #pragma once
 
 #include <string>
+#include "Coroutine/mycoroutine.h"
 
 namespace BenchMark2 {
 class Client {
 public:
-  Client(std::string ip, int port) : ip_(ip), port_(port) {
+  Client(MyCoroutine::Schedule &schedule, std::string ip, int port)
+      : schedule_(schedule), ip_(ip), port_(port) {
+    cid_ = schedule_.CoroutineCreate(Client::Start, this);
     // TODO
   }
-  void SetCid(int32_t cid) {
-    cid_ = cid;
-  }
-  static void Start(Client * client) {
+  void SetCid(int32_t cid) { cid_ = cid; }
+  static void Start(Client *client) {
     // TODO
   }
+
 private:
+  MyCoroutine::Schedule &schedule_;
   std::string ip_;
   int port_;
   std::string echo_message_;
   bool is_stop_{false};
   int32_t cid_;
 };
-}
+} // namespace BenchMark2
 
 /*
 #pragma once
