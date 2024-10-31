@@ -2,9 +2,11 @@
 #include <string>
 #include <thread>
 
+#include "Coroutine/mycoroutine.h"
+#include "EventDriven/eventloop.h"
+#include "clientmanager.hpp"
 #include "common/cmdline.h"
 #include "common/epollctl.hpp"
-#include "EventDriven/eventloop.h"
 
 string ip;
 int64_t port;
@@ -38,8 +40,10 @@ void ClientStart(EventDriven::EventLoop & event_loop) {
   event_loop.TimerStart(1, ClientStart, std::ref(event_loop));
 }
 
-void Handler() {
+void Handler(int64_t client_count, std::string ip, int port) {
   EventDriven::EventLoop event_loop;
+  MyCoroutine::Schedule schedule(client_count);
+  BenchMark2::ClientManager client_manager(schedule, client_count, ip, port);
   event_loop.TimerStart(1, ClientStart, std::ref(event_loop));
   event_loop.Run();
 //   epoll_event events[2048];
@@ -100,7 +104,7 @@ int main(int argc, char *argv[]) {
 //   SumStat sum_stat(kShmKey);
 //   PctStat pct_stat;
   for (int64_t i = 0; i < thread_count; i++) {
-    threads[i] = std::thread(Handler);
+    threads[i] = std::thread(Handler, client_count, ip, port);
   }
   for (int64_t i = 0; i < thread_count; i++) {
     threads[i].join();
