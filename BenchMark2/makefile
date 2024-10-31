@@ -12,7 +12,7 @@ LDFLAGS = -lpthread
 # 头文件目录
 INCFLAGS = -I../
 # 源文件目录
-SRCDIRS = .
+SRCDIRS = . ../EventDriven
 # 单独的源文件
 ALONE_SOURCES = ../common/cmdline.cpp
 #======================= 自定义设置部分 结束 =====================#
