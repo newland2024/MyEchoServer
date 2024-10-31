@@ -1,7 +1,7 @@
 #pragma once
 
 #include "client.hpp"
-#include "Coroutine/mycoroutine.hpp"
+#include "Coroutine/mycoroutine.h"
 #include <string>
 
 namespace BenchMark2 {
