@@ -7,7 +7,7 @@
 namespace BenchMark2 {
 class ClientManager {
 public:
-  ClientManager(MyCoroutine::Schedule &schedule, EventLoop &event_loop,
+  ClientManager(MyCoroutine::Schedule &schedule, EventDriven::EventLoop &event_loop,
                 int64_t client_count, std::string ip, int port,
                 int64_t rate_limit)
       : schedule_(schedule), client_count_(client_count),
