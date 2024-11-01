@@ -36,5 +36,39 @@ class Socket {
     }
     return socket_fd;
   }
+  static int Connect(std::string ip, uint16_t port, int &fd) {
+    fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+    if (fd < 0) {
+      return -1;
+    }
+    sockaddr_in addr;
+    bzero(&addr, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    if (inet_pton(AF_INET, ip.c_str(), &addr.sin_addr) <= 0) {
+      perror("inet_pton failed");
+      assert(0);
+    }
+    int ret = connect(fd, (struct sockaddr*)&addr, sizeof(addr));
+    if (0 == ret) {
+      return 0;
+    }
+    return errno;
+  }
+
+  static void SetCloseWithRst(int fd) {
+    struct linger lin;
+    lin.l_onoff = 1;
+    lin.l_linger = 0;
+    // 设置调用close关闭tcp连接时，直接发送RST包，tcp连接直接复位，进入到closed状态。
+    assert(0 == setsockopt(fd, SOL_SOCKET, SO_LINGER, &lin, sizeof(lin)));
+  }
+  
+  static bool IsConnectSuccess(int fd) {
+    int err = 0;
+    socklen_t err_len = sizeof(err);
+    assert(0 == getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &err_len));
+    return 0 == err;
+  }
 };
 }  // namespace EventDriven

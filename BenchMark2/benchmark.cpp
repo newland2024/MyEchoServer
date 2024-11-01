@@ -52,9 +52,10 @@ void StopHandler(EventDriven::EventLoop& event_loop) {
 }
 
 void Handler() {
+  std::string echo_message(pkt_size + 1, 'B');
   EventDriven::EventLoop event_loop;
   MyCoroutine::Schedule schedule(client_count);
-  BenchMark2::ClientManager client_manager(schedule, client_count, ip, port, rate_limit);
+  BenchMark2::ClientManager client_manager(schedule, event_loop, client_count, ip, port, echo_message, rate_limit);
   event_loop.TimerStart(1, InitStart, std::ref(client_manager));  // 只调用一次，用于初始化启动客户端
   event_loop.TimerStart(1000, RateLimitRefresh, std::ref(client_manager), std::ref(event_loop));  // 每秒刷新一下限流值
   event_loop.TimerStart(run_time * 1000, StopHandler, std::ref(event_loop));  // 设置定时器，运行时间一到，就退出事件循环

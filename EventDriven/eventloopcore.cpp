@@ -15,6 +15,16 @@ EventLoop::~EventLoop() {
   }
 }
 
+Event *EventLoop::createEvent(EventType event_type, int fd)) {
+  Event *event = new Event;
+  event->fd = fd;
+  event->epoll_fd = epoll_fd_;
+  event->events = 0;
+  event->type = event_type;
+  event->event_loop = this;
+  return event;
+}
+
 void EventLoop::Run() {
   int time_out_ms = -1;
   TimerData timer_data;

@@ -2,15 +2,15 @@
 
 #include "epollctl.hpp"
 #include "event.hpp"
-#include "timer.hpp"
 #include "socket.hpp"
+#include "timer.hpp"
 #include <cstdint>
+#include <list>
 #include <string>
 #include <sys/epoll.h>
 #include <unistd.h>
 #include <unordered_map>
 #include <utility>
-#include <list>
 
 using namespace std;
 
@@ -19,24 +19,55 @@ class EventLoop {
 public:
   EventLoop();
   ~EventLoop();
-  
-  void TcpListenStart(string ip, uint16_t port, function<void(Event * event)> accept_client);
-  void TcpConnectStart(string ip, uint16_t port, int64_t time_out_ms, function<void(Event *event)> client_connect);
-  void TcpReadStart(int fd, int64_t time_out_ms, function<void(Event *event)> can_read);
-  void TcpWriteStart(int fd, int64_t time_out_ms, function<void(Event *event)> can_write);
-
-  void UnixSocketListenStart(string path, int64_t time_out_ms, function<void(Event *event)> accept_client);
-  void UnixSocketConnectStart(string path, int64_t time_out_ms, function<void(Event *event)> client_connect);
-  void UnixSocketReadStart(int fd, int64_t time_out_ms, function<void(Event *event)> can_read);
-  void UinxSocketWriteStart(int fd, int64_t time_out_ms, function<void(Event *event)> can_write);
 
   template <typename Function, typename... Args>
-  uint64_t TimerStart(int64_t time_out_ms, Function && handler, Args &&...args) {
-    return timer_.Register(time_out_ms, forward<Function>(handler), forward<Args>(args)...);
+  void TcpReadStart(int fd, Function &&handler, Args &&...args) {
+    Event *event = createEvent(EventType::kRead, fd);
+    auto temp = std::bind(forward<Function>(handler), event, std::placeholders::_1);
+    auto can_read = std::bind(temp, forward<Args>(args)...);
+    event->handler = can_read;
+    EpollCtl::AddReadEvent(event->epoll_fd, event->fd, event);
+  }
+
+  template <typename Function, typename... Args>
+  void TcpWriteStart(int fd, Function &&handler, Args &&...args) {
+    Event *event = createEvent(EventType::kWrite, fd);
+    auto temp = std::bind(forward<Function>(handler), event, std::placeholders::_1);
+    auto can_write = std::bind(temp, forward<Args>(args)...);
+    event->handler = can_write;
+    EpollCtl::AddWriteEvent(event->epoll_fd, event->fd, event);
+  }
+
+  template <typename Function, typename... Args>
+  void TcpModToReadStart(int fd, Function &&handler, Args &&...args) {
+    Event *event = createEvent(EventType::kRead, fd);
+    auto temp = std::bind(forward<Function>(handler), event, std::placeholders::_1);
+    auto can_read = std::bind(temp, forward<Args>(args)...);
+    event->handler = can_read;
+    EpollCtl::ModToReadEvent(event->epoll_fd, event->fd, event);
+  }
+
+  template <typename Function, typename... Args>
+  void TcpModToWriteStart(int fd, Function &&handler, Args &&...args) {
+    Event *event = createEvent(EventType::kWrite, fd);
+    auto temp = std::bind(forward<Function>(handler), event, std::placeholders::_1);
+    auto can_write = std::bind(temp, forward<Args>(args)...);
+    event->handler = can_write;
+    EpollCtl::ModToWriteEvent(event->epoll_fd, event->fd, event);
+  }
+
+  template <typename Function, typename... Args>
+  uint64_t TimerStart(int64_t time_out_ms, Function &&handler, Args &&...args) {
+    return timer_.Register(time_out_ms, forward<Function>(handler),
+                           forward<Args>(args)...);
   }
 
   void Run();
   void Stop();
+
+private:
+  Event *createEvent(EventType event_type, int fd,
+                     function<void(Event *event)> handler);
 
 private:
   Timer timer_;                 // 定时器
