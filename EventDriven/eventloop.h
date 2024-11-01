@@ -66,13 +66,11 @@ public:
   void Stop();
 
 private:
-  Event *createEvent(EventType event_type, int fd,
-                     function<void(Event *event)> handler);
+  Event *createEvent(EventType event_type, int fd);
 
 private:
   Timer timer_;                 // 定时器
   int epoll_fd_;                // epoll的fd
   bool is_running_;             // 是否运行中
-  list<Event *> listen_events_; // 为监听而创建的事件对象列表
 };
 } // namespace EventDriven
