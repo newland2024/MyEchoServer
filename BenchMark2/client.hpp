@@ -82,7 +82,7 @@ public:
 
 private:
   MyCoroutine::Schedule &schedule_;
-  EventDriven::EventLoop &event_loop__;
+  EventDriven::EventLoop &event_loop_;
   int32_t cid_;
   int64_t &temp_rate_limit_;
   bool is_stop_{false};

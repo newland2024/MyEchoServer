@@ -7,7 +7,7 @@ EventLoop::EventLoop() {
   assert(epoll_fd_ > 0);
 }
 
-Event *EventLoop::createEvent(EventType event_type, int fd)) {
+Event *EventLoop::createEvent(EventType event_type, int fd) {
   Event *event = new Event;
   event->fd = fd;
   event->epoll_fd = epoll_fd_;
