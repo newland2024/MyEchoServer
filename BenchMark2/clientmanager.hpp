@@ -23,7 +23,7 @@ public:
 
   void InitStart() {
     for (int64_t i = 0; i < client_count_; i++) {
-      clients_[i]->InitStart();
+      clients_[i]->Start();
     }
   }
   void ReStart() {
