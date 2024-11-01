@@ -8,10 +8,10 @@ class Client {
 public:
   Client(MyCoroutine::Schedule &schedule, std::string ip, int port, int64_t& temp_rate_limit)
       : schedule_(schedule), ip_(ip), port_(port), temp_rate_limit_(temp_rate_limit) {
-    cid_ = schedule_.CoroutineCreate(Client::Start, this);
+    cid_ = schedule_.CoroutineCreate(Client::Run, this);
     // TODO
   }
-  static void Start(Client *client) { // 启动整个请求循环，在从协程中执行
+  static void Run(Client *client) { // 启动整个请求循环，在从协程中执行
     // TODO
   }
 
