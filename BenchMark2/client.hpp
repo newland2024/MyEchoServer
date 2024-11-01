@@ -6,14 +6,17 @@
 namespace BenchMark2 {
 class Client {
 public:
-  Client(MyCoroutine::Schedule &schedule, std::string ip, int port)
-      : schedule_(schedule), ip_(ip), port_(port) {
-    cid_ = schedule_.CoroutineCreate(Client::Start, this);
+  Client(MyCoroutine::Schedule &schedule, std::string ip, int port, int64_t& temp_rate_limit)
+      : schedule_(schedule), ip_(ip), port_(port), temp_rate_limit_(temp_rate_limit) {
+    cid_ = schedule_.CoroutineCreate(Client::InitStart, this);
     // TODO
   }
-  void SetCid(int32_t cid) { cid_ = cid; }
-  static void Start(Client *client) {
+  static void InitStart(Client *client) { // 启动整个请求循环，在从协程中执行
     // TODO
+  }
+
+  void ReStart() {
+
   }
 
 private:
@@ -23,6 +26,7 @@ private:
   std::string echo_message_;
   bool is_stop_{false};
   int32_t cid_;
+  int64_t &temp_rate_limit_;
 };
 } // namespace BenchMark2
 
