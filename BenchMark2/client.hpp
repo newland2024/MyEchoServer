@@ -8,7 +8,7 @@
 namespace BenchMark2 {
 class Client {
 public:
-  Client(MyCoroutine::Schedule &schedule, EventLoop &event_loop, std::string ip,
+  Client(MyCoroutine::Schedule &schedule, EventDriven::EventLoop &event_loop, std::string ip,
          int port, std::string echo_message, int64_t &temp_rate_limit)
       : schedule_(schedule), event_loop_(event_loop),
         temp_rate_limit_(temp_rate_limit) {
@@ -42,6 +42,9 @@ public:
     }
     bool ret = CoConnect(ip, port, 100);  // 建立连接，超时时间100ms
     // TODO 一些数据统计
+    if (ret) {
+        return;
+    }
     return;
   }
 
@@ -53,10 +56,10 @@ public:
     if (ret == EINPROGRESS) {
       event_loop_.TcpWriteStart(fd_, CanWrite, std::ref(schedule_), cid_);
       schedule_.CoroutineYield();
-      return EventDriven::Socket::IsConnectSuccess(fd);
+      return EventDriven::Socket::IsConnectSuccess(fd_);
     }
     // 执行到这里连接失败
-    fd = -1;
+    fd_ = -1;
   }
 
   ssize_t CoRead() {
