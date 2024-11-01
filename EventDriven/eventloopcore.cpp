@@ -7,14 +7,6 @@ EventLoop::EventLoop() {
   assert(epoll_fd_ > 0);
 }
 
-EventLoop::~EventLoop() {
-  while (not listen_events_.empty()) {
-    Event *event = listen_events_.front();
-    listen_events_.pop_front();
-    delete event;
-  }
-}
-
 Event *EventLoop::createEvent(EventType event_type, int fd)) {
   Event *event = new Event;
   event->fd = fd;

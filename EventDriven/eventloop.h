@@ -18,7 +18,6 @@ namespace EventDriven {
 class EventLoop {
 public:
   EventLoop();
-  ~EventLoop();
 
   template <typename Function, typename... Args>
   void TcpReadStart(int fd, Function &&handler, Args &&...args) {
