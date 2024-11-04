@@ -51,8 +51,7 @@ public:
       return true;
     }
     if (ret == EINPROGRESS) {
-      EventDriven::Event event;
-      event_loop_.EventInit(event, EventDriven::kWrite, fd_);
+      EventDriven::Event event(fd);
       event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(schedule_), cid_);
       schedule_.CoroutineYield();
       return EventDriven::Socket::IsConnectSuccess(fd_);

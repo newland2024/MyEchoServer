@@ -7,8 +7,7 @@ EventLoop::EventLoop() {
   assert(epoll_fd_ > 0);
 }
 
-void EventLoop::EventInit(Event &event, EventType event_type, int fd) {
-  event.fd = fd;
+void EventLoop::EventSetUp(Event &event, EventType event_type) {
   event.epoll_fd = epoll_fd_;
   event.events = 0;
   event.type = event_type;

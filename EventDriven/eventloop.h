@@ -21,24 +21,28 @@ public:
 
   template <typename Function, typename... Args>
   void TcpReadStart(Event *event, Function &&handler, Args &&...args) {
+    EventSetUp(event, EventType::kRead);
     event->handler =  std::bind(std::forward<Function>(handler), std::forward<Args>(args)...);
     EpollCtl::AddReadEvent(event->epoll_fd, event->fd, event);
   }
 
   template <typename Function, typename... Args>
   void TcpWriteStart(Event *event, Function &&handler, Args &&...args) {
+    EventSetUp(event, EventType::kWrite);
     event->handler =  std::bind(std::forward<Function>(handler), std::forward<Args>(args)...);
     EpollCtl::AddWriteEvent(event->epoll_fd, event->fd, event);
   }
 
   template <typename Function, typename... Args>
   void TcpModToReadStart(Event *event, Function &&handler, Args &&...args) {
+    EventSetUp(event, EventType::kRead);
     event->handler =  std::bind(std::forward<Function>(handler), std::forward<Args>(args)...);
     EpollCtl::ModToReadEvent(event->epoll_fd, event->fd, event);
   }
 
   template <typename Function, Event *event, typename... Args>
   void TcpModToWriteStart(Function &&handler, Args &&...args) {
+    EventSetUp(event, EventType::kWrite);
     event->handler =  std::bind(std::forward<Function>(handler), std::forward<Args>(args)...);
     EpollCtl::ModToWriteEvent(event->epoll_fd, event->fd, event);
   }
@@ -49,10 +53,11 @@ public:
                            forward<Args>(args)...);
   }
 
-  void EventInit(Event &event, EventType event_type, int fd);
-
   void Run();
   void Stop();
+
+private:
+  void EventSetUp(Event &event, EventType event_type);
 
 private:
   Timer timer_;                 // 定时器
