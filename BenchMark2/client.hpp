@@ -58,6 +58,7 @@ public:
     }
     // 执行到这里连接失败
     fd_ = -1;
+    return false;
   }
 
   ssize_t CoRead() {
