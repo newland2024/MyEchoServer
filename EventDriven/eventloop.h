@@ -20,34 +20,26 @@ public:
   EventLoop();
 
   template <typename Function, typename... Args>
-  void TcpReadStart(int fd, Function &&handler, Args &&...args) {
-    Event *event = createEvent(EventType::kRead, fd);
-    auto can_read = std::bind(forward<Function>(handler), event, std::placeholders::_1, forward<Args>(args)...);
-    event->handler = can_read;
+  void TcpReadStart(Event *event, Function &&handler, Args &&...args) {
+    event->handler =  std::bind(std::forward<Function>(handler), std::forward<Args>(args)...);
     EpollCtl::AddReadEvent(event->epoll_fd, event->fd, event);
   }
 
   template <typename Function, typename... Args>
-  void TcpWriteStart(int fd, Function &&handler, Args &&...args) {
-    Event *event = createEvent(EventType::kWrite, fd);
-    auto can_write = std::bind(forward<Function>(handler), event, std::placeholders::_1, forward<Args>(args)...);
-    event->handler = can_write;
+  void TcpWriteStart(Event *event, Function &&handler, Args &&...args) {
+    event->handler =  std::bind(std::forward<Function>(handler), std::forward<Args>(args)...);
     EpollCtl::AddWriteEvent(event->epoll_fd, event->fd, event);
   }
 
   template <typename Function, typename... Args>
-  void TcpModToReadStart(int fd, Function &&handler, Args &&...args) {
-    Event *event = createEvent(EventType::kRead, fd);
-    auto can_read = std::bind(forward<Function>(handler), event, std::placeholders::_1, forward<Args>(args)...);
-    event->handler = can_read;
+  void TcpModToReadStart(Event *event, Function &&handler, Args &&...args) {
+    event->handler =  std::bind(std::forward<Function>(handler), std::forward<Args>(args)...);
     EpollCtl::ModToReadEvent(event->epoll_fd, event->fd, event);
   }
 
-  template <typename Function, typename... Args>
-  void TcpModToWriteStart(int fd, Function &&handler, Args &&...args) {
-    Event *event = createEvent(EventType::kWrite, fd);
-    auto can_write = std::bind(forward<Function>(handler), event, std::placeholders::_1, forward<Args>(args)...);
-    event->handler = can_write;
+  template <typename Function, Event *event, typename... Args>
+  void TcpModToWriteStart(Function &&handler, Args &&...args) {
+    event->handler =  std::bind(std::forward<Function>(handler), std::forward<Args>(args)...);
     EpollCtl::ModToWriteEvent(event->epoll_fd, event->fd, event);
   }
 
@@ -57,11 +49,10 @@ public:
                            forward<Args>(args)...);
   }
 
+  void EventInit(Event &event, EventType event_type, int fd);
+
   void Run();
   void Stop();
-
-private:
-  Event *createEvent(EventType event_type, int fd);
 
 private:
   Timer timer_;                 // 定时器

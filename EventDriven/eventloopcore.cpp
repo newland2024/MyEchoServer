@@ -7,14 +7,12 @@ EventLoop::EventLoop() {
   assert(epoll_fd_ > 0);
 }
 
-Event *EventLoop::createEvent(EventType event_type, int fd) {
-  Event *event = new Event;
-  event->fd = fd;
-  event->epoll_fd = epoll_fd_;
-  event->events = 0;
-  event->type = event_type;
-  event->event_loop = this;
-  return event;
+void EventLoop::EventInit(Event &event, EventType event_type, int fd) {
+  event.fd = fd;
+  event.epoll_fd = epoll_fd_;
+  event.events = 0;
+  event.type = event_type;
+  event.event_loop = this;
 }
 
 void EventLoop::Run() {
@@ -42,8 +40,7 @@ void EventLoop::Run() {
     for (int i = 0; i < event_num; i++) {
       Event *event = (Event *)events[i].data.ptr;
       event->events = events[i].events;
-      event->handler(event);
-      delete event;
+      event->handler();
     }
     if (has_timer) timer_.Run(timer_data);  // 定时器放在最后处理
   }

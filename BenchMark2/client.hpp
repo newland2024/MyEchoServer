@@ -29,10 +29,7 @@ public:
     }
   }
 
-  static void CanRead(EventDriven::Event * event, MyCoroutine::Schedule &schedule, int32_t cid) {
-    schedule.CoroutineResume(cid);
-  }
-  static void CanWrite(EventDriven::Event * event, MyCoroutine::Schedule &schedule, int32_t cid) {
+  static void EventCallBack(MyCoroutine::Schedule &schedule, int32_t cid) {
     schedule.CoroutineResume(cid);
   }
 
@@ -54,7 +51,9 @@ public:
       return true;
     }
     if (ret == EINPROGRESS) {
-      event_loop_.TcpWriteStart(fd_, CanWrite, std::ref(schedule_), cid_);
+      EventDriven::Event event;
+      event_loop_.EventInit(event, EventDriven::kWrite, fd_);
+      event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(schedule_), cid_);
       schedule_.CoroutineYield();
       return EventDriven::Socket::IsConnectSuccess(fd_);
     }
