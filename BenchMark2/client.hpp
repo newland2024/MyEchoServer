@@ -25,7 +25,9 @@ public:
       // 创建连接
       client.TryConnect(ip, port);
       // 发起请求
+      client.SendRequest();
       // 接收应答
+      client.RecvResponse();
     }
   }
 
@@ -33,16 +35,31 @@ public:
     schedule.CoroutineResume(cid);
   }
 
+  static void ConnectTimeOut(MyCoroutine::Schedule &schedule, int32_t cid,
+                             bool &is_time_out) {
+    is_time_out = true;
+    schedule.CoroutineResume(cid);
+  }
+
   void TryConnect(std::string ip, int port) {
     if (fd_ >= 0) {
       return;
     }
-    bool ret = CoConnect(ip, port, 100);  // 建立连接，超时时间100ms
-    // TODO 一些数据统计
-    if (ret) {
-        return;
+    if (CoConnect(ip, port, 100)) { // 建立连接，超时时间100ms
+      return;
     }
+    // 执行到这里，连接失败
+    close(fd_);
+    fd_ = -1;
     return;
+  }
+
+  void SendRequest() {
+    // TODO
+  }
+
+  void RecvResponse() {
+    // TODO
   }
 
   bool CoConnect(std::string ip, int port, int64_t time_out_ms) {
@@ -51,13 +68,17 @@ public:
       return true;
     }
     if (ret == EINPROGRESS) {
+      bool is_time_out{false};
+      event_loop_.TimerStart(time_out_ms, ConnectTimeOut, std::ref(schedule_), cid_, std::ref(is_time_out));
       EventDriven::Event event(fd_);
       event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(schedule_), cid_);
       schedule_.CoroutineYield();
+      if (is_time_out) {  // 连接超时了
+        return false;
+      }
       return EventDriven::Socket::IsConnectSuccess(fd_);
     }
     // 执行到这里连接失败
-    fd_ = -1;
     return false;
   }
 
