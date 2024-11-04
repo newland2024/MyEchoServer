@@ -57,7 +57,7 @@ public:
   void Stop();
 
 private:
-  void EventSetUp(Event &event, EventType event_type);
+  void EventSetUp(Event *event, EventType event_type);
 
 private:
   Timer timer_;                 // 定时器
