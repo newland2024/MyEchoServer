@@ -31,13 +31,17 @@ class Schedule {
     return cid;
   }
 
-  void Run();                         // 协程调度执行
+  void Run();  // 协程调度执行
   int32_t CurrentCid() {
     assert(not is_master_);
     return slave_cid_;
   }
   void CoroutineYield();              // 从协程让出cpu执行权
   void CoroutineResume(int32_t cid);  // 主协程唤醒指定的从协程
+  void Sleep(int64_t time_out_ms,
+             std::function<void(int64_t, std::function<void(Schedule &, int32_t)>, Schedule &, int32_t)>
+                 start_timer);                                                                   // 协程休眠
+  static void SleepCallBack(Schedule &schedule, int32_t cid) { schedule.CoroutineResume(cid); }  // 完成休眠后唤醒协程
 
   void CoroutineResume4BatchStart(int32_t cid);  // 主协程唤醒指定从协程中的批量执行中的子从协程
   void CoroutineResume4BatchFinish();            // 主协程唤醒被插入批量执行的父从协程的调用
@@ -89,9 +93,9 @@ class Schedule {
   void CoRWLockResume();
 
   void CoSemaphoreInit(CoSemaphore &semaphore, int64_t value = 0);  // 信号量初始化
-  void CoSemaphoreClear(CoSemaphore &semaphore);                // 信号量清理
-  void CoSemaphorePost(CoSemaphore &semaphore);                 // （V 操作）释放信号量
-  void CoSemaphoreWait(CoSemaphore &semaphore);                 // （P 操作）请求信号量
+  void CoSemaphoreClear(CoSemaphore &semaphore);                    // 信号量清理
+  void CoSemaphorePost(CoSemaphore &semaphore);                     // （V 操作）释放信号量
+  void CoSemaphoreWait(CoSemaphore &semaphore);                     // （P 操作）请求信号量
   int CoSemaphoreResume();
 
   void CoCallOnceInit(CoCallOnce &call_once);   // CallOnce初始化

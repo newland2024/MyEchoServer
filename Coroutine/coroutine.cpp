@@ -121,6 +121,14 @@ void Schedule::CoroutineResume(int32_t cid) {
   slave_cid_ = kInvalidCid;
 }
 
+void Schedule::Sleep(
+    int64_t time_out_ms,
+    std::function<void(int64_t, std::function<void(Schedule&, int32_t)>, Schedule&, int32_t)> start_timer) {
+  assert(not is_master_);
+  start_timer(time_out_ms, Schedule::SleepCallBack, *this, slave_cid_);  // 启动定时器
+  CoroutineYield();
+}
+
 void Schedule::CoroutineInit(Coroutine* routine, function<void()> entry) {
   routine->entry = entry;
   routine->state = State::kReady;
