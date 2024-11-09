@@ -24,10 +24,18 @@ void Schedule::CoCondWait(CoCond &cond, std::function<bool()> pred) {
 void Schedule::CoCondNotifyOne(CoCond &cond) {
   if (cond.state == CondState::kNotifyNone) {
     cond.state = CondState::kNotifyOne;
+    cond.notify_count = 1;
+  } else if (cond.state == CondState::kNotifyOne) {
+    cond.notify_count++;
+  } else if (cond.state == CondState::kNotifyAll) {
+    // do nothing.
   }
 }
 
-void Schedule::CoCondNotifyAll(CoCond &cond) { cond.state = CondState::kNotifyAll; }
+void Schedule::CoCondNotifyAll(CoCond &cond) {
+  cond.state = CondState::kNotifyAll;
+  cond.notify_count = 0;
+}
 
 int Schedule::CoCondResume() {
   assert(is_master_);
@@ -38,9 +46,11 @@ int Schedule::CoCondResume() {
     if (cond->suspend_cid_set.size() <= 0) continue;
     // 有挂起的协程才调整通知的状态
     if (cond->state == CondState::kNotifyOne) {
-      int32_t cid = *cond->suspend_cid_set.begin();
-      cond->suspend_cid_set.erase(cid);
-      CoroutineResume(cid);  // 每次只能唤醒等待队列中的一个从协程，采用先进先出的策略
+      while (cond->notify_count--) {
+        int32_t cid = *cond->suspend_cid_set.begin();
+        cond->suspend_cid_set.erase(cid);
+        CoroutineResume(cid);  // 每次只能唤醒等待队列中的一个从协程，采用先进先出的策略
+      }
     } else if (cond->state == CondState::kNotifyAll) {
       // 唤醒所有等待的从协程
       auto cid_set = cond->suspend_cid_set;

@@ -118,20 +118,21 @@ typedef struct CoRWLock {
 // 协程条件变量
 typedef struct CoCond {
   CondState state;                         // 条件变量状态
+  int32_t notify_count;                    // 条件变量状态为kNotifyOne时，表示具体通知的次数
   unordered_set<int32_t> suspend_cid_set;  // 被挂起的从协程id查重集合
 } CoCond;
 
 // 协程信号量
 typedef struct CoSemaphore {
-  int64_t value;                          // 信号量的计数值
-  unordered_set<int32_t> suspend_cid_set; // 被挂起的从协程id查重集合
+  int64_t value;                           // 信号量的计数值
+  unordered_set<int32_t> suspend_cid_set;  // 被挂起的从协程id查重集合
 } CoSemaphore;
 
 // 协程Channel
 typedef struct CoChannel {
-  CoSemaphore idle; // 计数信号量，表示缓冲区中空闲出来的大小
-  CoSemaphore fill; // 计数信号量，表示缓冲区中已被填充的大小
-  list<void *> buffer; // 通用数据缓冲区
+  CoSemaphore idle;     // 计数信号量，表示缓冲区中空闲出来的大小
+  CoSemaphore fill;     // 计数信号量，表示缓冲区中已被填充的大小
+  list<void *> buffer;  // 通用数据缓冲区
 } CoChannel;
 
 // 协程SingleFlight

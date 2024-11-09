@@ -10,16 +10,16 @@
 
 #include <iostream>
 
+#include "../../Coroutine/conditionvariable.h"
+#include "../../Coroutine/mycoroutine.h"
 #include "../../common/cmdline.h"
 #include "../../common/epollctl.hpp"
-#include "../../Coroutine/mycoroutine.h"
-#include "../../Coroutine/conditionvariable.h"
 
 using namespace std;
 using namespace MyEcho;
 
 struct EventData {
-  EventData(int fd, int epoll_fd) : fd_(fd), epoll_fd_(epoll_fd){};
+  EventData(int fd, int epoll_fd) : fd_(fd), epoll_fd_(epoll_fd) {};
   int fd_{0};
   int epoll_fd_{0};
   int cid_{MyCoroutine::kInvalidCid};
@@ -28,26 +28,27 @@ struct EventData {
 
 void EchoDeal(const std::string req_message, std::string &resp_message) { resp_message = req_message; }
 
-void pushToQueue(MyCoroutine::ConditionVariable &cond, list<EventData*> &q, EventData *data) {
+void pushToQueue(MyCoroutine::ConditionVariable &cond, list<EventData *> &q, EventData *data) {
   q.push_back(data);
-  cond.NotifyAll();
+  cond.NotifyOne();
 }
 
-EventData *getQueueData(MyCoroutine::ConditionVariable &cond, list<EventData*> &q) {
+EventData *getQueueData(MyCoroutine::ConditionVariable &cond, list<EventData *> &q) {
   cond.Wait([&q]() { return q.size() > 0; });
-  EventData * data = q.front();
+  EventData *data = q.front();
   q.pop_front();
   return data;
 }
 
-void Producer(MyCoroutine::ConditionVariable &cond, list<EventData*> &q, EventData *event_data) {
-  ClearEvent(event_data->epoll_fd_, event_data->fd_, false); 
+void Producer(MyCoroutine::ConditionVariable &cond, list<EventData *> &q, EventData *event_data) {
+  ClearEvent(event_data->epoll_fd_, event_data->fd_, false);
   pushToQueue(cond, q, event_data);
 }
 
-void Consumer(MyCoroutine::Schedule &schedule, MyCoroutine::ConditionVariable &cond, list<EventData*> &q) {
-  EventData * event_data = getQueueData(cond, q);
-  event_data->cid_ = schedule.CurrentCid();  // 注意，这里需要更新cid_，之前的cid_是Producer协程的id，需要更新成Consumer的协程id
+void Consumer(MyCoroutine::Schedule &schedule, MyCoroutine::ConditionVariable &cond, list<EventData *> &q) {
+  EventData *event_data = getQueueData(cond, q);
+  event_data->cid_ =
+      schedule.CurrentCid();  // 注意，这里需要更新cid_，之前的cid_是Producer协程的id，需要更新成Consumer的协程id
   auto releaseConn = [&event_data]() {
     ClearEvent(event_data->epoll_fd_, event_data->fd_);
     delete event_data;  // 释放内存
@@ -168,8 +169,7 @@ int main(int argc, char *argv[]) {
       }
       if (event_data->cid_ == MyCoroutine::kInvalidCid) {  // 第一次事件，则创建协程
         event_data->schedule_ = &schedule;
-        event_data->cid_ = schedule.CoroutineCreate(
-            Producer, std::ref(cond), std::ref(q), event_data); // 创建协程
+        event_data->cid_ = schedule.CoroutineCreate(Producer, std::ref(cond), std::ref(q), event_data);  // 创建协程
         schedule.CoroutineResume(event_data->cid_);
       } else {
         schedule.CoroutineResume(event_data->cid_);  // 唤醒之前主动让出cpu的协程
