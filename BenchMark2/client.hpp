@@ -1,24 +1,24 @@
 #pragma once
 
 #include <string>
+
+#include "Coroutine/mycoroutine.h"
 #include "EventDriven/eventloop.h"
 #include "EventDriven/socket.hpp"
-#include "Coroutine/mycoroutine.h"
 
 namespace BenchMark2 {
 class Client {
-public:
-  Client(MyCoroutine::Schedule &schedule, EventDriven::EventLoop &event_loop, std::string ip,
-         int port, std::string echo_message, int64_t &temp_rate_limit)
-      : schedule_(schedule), event_loop_(event_loop),
-        temp_rate_limit_(temp_rate_limit) {
-    cid_ = schedule_.CoroutineCreate(Client::Run, std::ref(*this), ip, port,
-                                     echo_message);
+ public:
+  Client(MyCoroutine::Schedule &schedule, EventDriven::EventLoop &event_loop, std::string ip, int port,
+         std::string echo_message, int64_t &temp_rate_limit)
+      : schedule_(schedule), event_loop_(event_loop), temp_rate_limit_(temp_rate_limit) {
+    cid_ = schedule_.CoroutineCreate(Client::Run, std::ref(*this), ip, port, echo_message);
   }
-  static void Run(Client& client, std::string ip, int port, std::string echo_message) { // 启动整个请求循环，在从协程中执行
+  static void Run(Client &client, std::string ip, int port,
+                  std::string echo_message) {  // 启动整个请求循环，在从协程中执行
     while (true) {
       client.temp_rate_limit_--;
-      if (client.temp_rate_limit_ <= 0) { // 已经触达每秒的限频，则暂停请求
+      if (client.temp_rate_limit_ <= 0) {  // 已经触达每秒的限频，则暂停请求
         client.is_stop_ = true;
         client.schedule_.CoroutineYield();
       }
@@ -31,12 +31,9 @@ public:
     }
   }
 
-  static void EventCallBack(MyCoroutine::Schedule &schedule, int32_t cid) {
-    schedule.CoroutineResume(cid);
-  }
+  static void EventCallBack(MyCoroutine::Schedule &schedule, int32_t cid) { schedule.CoroutineResume(cid); }
 
-  static void ConnectTimeOut(MyCoroutine::Schedule &schedule, int32_t cid,
-                             bool &is_time_out) {
+  static void ConnectTimeOut(MyCoroutine::Schedule &schedule, int32_t cid, bool &is_time_out) {
     is_time_out = true;
     schedule.CoroutineResume(cid);
   }
@@ -45,7 +42,7 @@ public:
     if (fd_ >= 0) {
       return;
     }
-    if (CoConnect(ip, port, 100)) { // 建立连接，超时时间100ms
+    if (CoConnect(ip, port, 100)) {  // 建立连接，超时时间100ms
       return;
     }
     // 执行到这里，连接失败
@@ -64,7 +61,7 @@ public:
 
   bool CoConnect(std::string ip, int port, int64_t time_out_ms) {
     int ret = EventDriven::Socket::Connect(ip, port, fd_);
-    if (0 == ret) { // 创建连接成功
+    if (0 == ret) {  // 创建连接成功
       return true;
     }
     if (ret == EINPROGRESS) {
@@ -87,13 +84,9 @@ public:
     return 0;
   }
 
-  size_t CoWrite() {
-    return 0;
-  }
+  size_t CoWrite() { return 0; }
 
-  void InitStart() {
-    schedule_.CoroutineResume(cid_);
-  }
+  void InitStart() { schedule_.CoroutineResume(cid_); }
 
   void ReStart() {
     if (not is_stop_) {
@@ -103,7 +96,7 @@ public:
     schedule_.CoroutineResume(cid_);
   }
 
-private:
+ private:
   MyCoroutine::Schedule &schedule_;
   EventDriven::EventLoop &event_loop_;
   int32_t cid_;
@@ -111,7 +104,7 @@ private:
   bool is_stop_{false};
   int fd_{-1};
 };
-} // namespace BenchMark2
+}  // namespace BenchMark2
 
 /*
 #pragma once
