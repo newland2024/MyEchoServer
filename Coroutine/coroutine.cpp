@@ -121,7 +121,7 @@ void Schedule::CoroutineResume(int32_t cid) {
   slave_cid_ = kInvalidCid;
 }
 
-void Schedule::Sleep(int64_t time_out_ms, function<void()> start_timer) {
+void Schedule::Sleep(int64_t time_out_ms, function<void(int64_t, function<void()>)> start_timer) {
   assert(not is_master_);
   function<void()> timer_call_back = bind(Schedule::SleepCallBack, ref(*this), slave_cid_);
   start_timer(time_out_ms, timer_call_back);  // 启动定时器
