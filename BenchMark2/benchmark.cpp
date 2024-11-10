@@ -52,7 +52,7 @@ void StopHandler(EventDriven::EventLoop& event_loop) {
 
 void CoSleep(MyCoroutine::Schedule& schedule, EventDriven::EventLoop& event_loop) {
   while (true) {
-    auto start_timer = [&event_loop](int64_t time_out_ms, std::function<void()> call_back, ) {
+    auto start_timer = [&event_loop](int64_t time_out_ms, std::function<void()> call_back) {
       event_loop.TimerStart(time_out_ms, call_back);
     };
     schedule.Sleep(3000, start_timer);
