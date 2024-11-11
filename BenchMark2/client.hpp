@@ -72,7 +72,7 @@ class Client {
     size_t sendLen = 0;
     bool send_result = true;
     while (sendLen != pkt.UseLen()) {  // 写操作
-      ssize_t ret = CoWrite(fd_, pkt.Data() + sendLen, pkt.UseLen() - sendLen);
+      ssize_t ret = CoWrite(pkt.Data() + sendLen, pkt.UseLen() - sendLen, 1000);
       if (ret < 0) {
         if (EINTR == errno) continue;  // 被中断，可以重启写操作
         send_result = false;
@@ -93,63 +93,39 @@ class Client {
     if (fd_ < 0) {
       return;
     }
-  }
-
-  /*
-   *
-   *
-   * while (true) {
-    ssize_t ret = 0;
     Codec codec;
-    string *req_message{nullptr};
-    string resp_message;
-    while (true) {  // 读操作
-      ret = read(event_data->fd_, codec.Data(), codec.Len());
-      if (ret == 0) {
-        perror("peer close connection");
-        releaseConn();
-        return;
+    EventDriven::Event event(fd_);
+    event_loop_.TcpModToReadStart(&event, EventCallBack, std::ref(schedule_), cid_);
+    bool recv_result = true;
+    string *resp_message{nullptr};
+    while (true) {
+      ssize_t ret = CoRead(codec.Data(), codec.Len(), 1000);
+      if (0 == ret) {
+        recv_result = false;
+        break;
       }
       if (ret < 0) {
         if (EINTR == errno) continue;  // 被中断，可以重启读操作
-        if (EAGAIN == errno or EWOULDBLOCK == errno) {
-          event_data->schedule_->CoroutineYield();  // 让出cpu，切换到主协程，等待下一次数据可读
-          continue;
+        if (EAGAIN == errno) {
+          recv_result = false;
+          break;
         }
-        perror("read failed");
-        releaseConn();
-        return;
       }
       codec.DeCode(ret);  // 解析请求数据
-      req_message = codec.GetMessage();
-      if (req_message) {  // 解析出一个完整的请求
+      resp_message = codec.GetMessage();
+      if (resp_message) {  // 解析出一个完整的请求
         break;
       }
     }
-    // 执行到这里说明已经读取到一个完整的请求
-    EchoDeal(*req_message, resp_message);  // 业务handler的封装，这样协程的调用就对业务逻辑函数EchoDeal透明
-    delete req_message;
-    Packet pkt;
-    codec.EnCode(resp_message, pkt);
-    ModToWriteEvent(event_data->epoll_fd_, event_data->fd_, event_data);  // 监听可写事件。
-    size_t sendLen = 0;
-    while (sendLen != pkt.UseLen()) {  // 写操作
-      ret = write(event_data->fd_, pkt.Data() + sendLen, pkt.UseLen() - sendLen);
-      if (ret < 0) {
-        if (EINTR == errno) continue;  // 被中断，可以重启写操作
-        if (EAGAIN == errno or EWOULDBLOCK == errno) {
-          event_data->schedule_->CoroutineYield();  // 让出cpu，切换到主协程，等待下一次数据可写
-          continue;
-        }
-        perror("write failed");
-        releaseConn();
-        return;
-      }
-      sendLen += ret;
+    if (not recv_result) {
+      close(fd_);
+      fd_ = -1;
+      // TODO 统计相关
+    } else {
+      // TODO 统计相关
+      event_loop_.TcpModToWriteStart(&event, EventCallBack, std::ref(schedule_), cid_);
     }
-    ModToReadEvent(event_data->epoll_fd_, event_data->fd_, event_data);  // 监听可读事件。
   }
-   */
 
   bool CoConnect(std::string ip, int port, int64_t time_out_ms) {
     int ret = EventDriven::Socket::Connect(ip, port, fd_);
@@ -174,7 +150,7 @@ class Client {
     return false;
   }
 
-  ssize_t CoRead() {
+  ssize_t CoRead(uint8_t *buf, size_t size, int64_t time_out_ms) {
     // TODO
     return 0;
   }
