@@ -5,8 +5,18 @@
 #include "Coroutine/mycoroutine.h"
 #include "EventDriven/eventloop.h"
 #include "EventDriven/socket.hpp"
+#include "common/codec.hpp"
+#include "common/packet.hpp"
 
 namespace BenchMark2 {
+class Defer {
+ public:
+  Defer(std::function<void(void)> func) : func_(func) {}
+  ~Defer() { func_(); }
+
+ private:
+  std::function<void(void)> func_;
+};
 class Client {
  public:
   Client(MyCoroutine::Schedule &schedule, EventDriven::EventLoop &event_loop, std::string ip, int port,
@@ -25,15 +35,15 @@ class Client {
       // 创建连接
       client.TryConnect(ip, port);
       // 发起请求
-      client.SendRequest();
+      client.SendRequest(echo_message);
       // 接收应答
-      client.RecvResponse();
+      client.RecvResponse(echo_message);
     }
   }
 
   static void EventCallBack(MyCoroutine::Schedule &schedule, int32_t cid) { schedule.CoroutineResume(cid); }
 
-  static void ConnectTimeOut(MyCoroutine::Schedule &schedule, int32_t cid, bool &is_time_out) {
+  static void TimeOutCallBack(MyCoroutine::Schedule &schedule, int32_t cid, bool &is_time_out) {
     is_time_out = true;
     schedule.CoroutineResume(cid);
   }
@@ -43,6 +53,7 @@ class Client {
       return;
     }
     if (CoConnect(ip, port, 100)) {  // 建立连接，超时时间100ms
+      SetCloseWithRst(fd_);
       return;
     }
     // 执行到这里，连接失败
@@ -51,13 +62,94 @@ class Client {
     return;
   }
 
-  void SendRequest() {
-    // TODO
+  void SendRequest(const std::string &echo_message) {
+    if (fd_ < 0) {
+      return;
+    }
+    MyEcho::Codec codec;
+    MyEcho::Packet pkt;
+    codec.EnCode(echo_message, pkt);
+    size_t sendLen = 0;
+    bool send_result = true;
+    while (sendLen != pkt.UseLen()) {  // 写操作
+      ssize_t ret = CoWrite(fd_, pkt.Data() + sendLen, pkt.UseLen() - sendLen);
+      if (ret < 0) {
+        if (EINTR == errno) continue;  // 被中断，可以重启写操作
+        send_result = false;
+        break;
+      }
+      sendLen += ret;
+    }
+    if (not send_result) {
+      close(fd_);
+      fd_ = -1;
+      // TODO 统计相关
+    } else {
+      // TODO 统计相关
+    }
   }
 
-  void RecvResponse() {
-    // TODO
+  void RecvResponse(const std::string &echo_message) {
+    if (fd_ < 0) {
+      return;
+    }
   }
+
+  /*
+   *
+   *
+   * while (true) {
+    ssize_t ret = 0;
+    Codec codec;
+    string *req_message{nullptr};
+    string resp_message;
+    while (true) {  // 读操作
+      ret = read(event_data->fd_, codec.Data(), codec.Len());
+      if (ret == 0) {
+        perror("peer close connection");
+        releaseConn();
+        return;
+      }
+      if (ret < 0) {
+        if (EINTR == errno) continue;  // 被中断，可以重启读操作
+        if (EAGAIN == errno or EWOULDBLOCK == errno) {
+          event_data->schedule_->CoroutineYield();  // 让出cpu，切换到主协程，等待下一次数据可读
+          continue;
+        }
+        perror("read failed");
+        releaseConn();
+        return;
+      }
+      codec.DeCode(ret);  // 解析请求数据
+      req_message = codec.GetMessage();
+      if (req_message) {  // 解析出一个完整的请求
+        break;
+      }
+    }
+    // 执行到这里说明已经读取到一个完整的请求
+    EchoDeal(*req_message, resp_message);  // 业务handler的封装，这样协程的调用就对业务逻辑函数EchoDeal透明
+    delete req_message;
+    Packet pkt;
+    codec.EnCode(resp_message, pkt);
+    ModToWriteEvent(event_data->epoll_fd_, event_data->fd_, event_data);  // 监听可写事件。
+    size_t sendLen = 0;
+    while (sendLen != pkt.UseLen()) {  // 写操作
+      ret = write(event_data->fd_, pkt.Data() + sendLen, pkt.UseLen() - sendLen);
+      if (ret < 0) {
+        if (EINTR == errno) continue;  // 被中断，可以重启写操作
+        if (EAGAIN == errno or EWOULDBLOCK == errno) {
+          event_data->schedule_->CoroutineYield();  // 让出cpu，切换到主协程，等待下一次数据可写
+          continue;
+        }
+        perror("write failed");
+        releaseConn();
+        return;
+      }
+      sendLen += ret;
+    }
+    ModToReadEvent(event_data->epoll_fd_, event_data->fd_, event_data);  // 监听可读事件。
+  }
+   */
 
   bool CoConnect(std::string ip, int port, int64_t time_out_ms) {
     int ret = EventDriven::Socket::Connect(ip, port, fd_);
@@ -66,13 +158,16 @@ class Client {
     }
     if (ret == EINPROGRESS) {
       bool is_time_out{false};
-      event_loop_.TimerStart(time_out_ms, ConnectTimeOut, std::ref(schedule_), cid_, std::ref(is_time_out));
+      uint64_t timer_id =
+          event_loop_.TimerStart(time_out_ms, TimeOutCallBack, std::ref(schedule_), cid_, std::ref(is_time_out));
       EventDriven::Event event(fd_);
       event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(schedule_), cid_);
       schedule_.CoroutineYield();
       if (is_time_out) {  // 连接超时了
+        event_loop_.TcpEventClear(&event);
         return false;
       }
+      event_loop_.TimerCancel(timer_id);
       return EventDriven::Socket::IsConnectSuccess(fd_);
     }
     // 执行到这里连接失败
@@ -84,7 +179,33 @@ class Client {
     return 0;
   }
 
-  size_t CoWrite() { return 0; }
+  ssize_t CoWrite(uint8_t *buf, size_t size, int64_t time_out_ms) {
+    bool is_time_out{false};
+    uint64_t timer_id =
+        event_loop_.TimerStart(time_out_ms, TimeOutCallBack, std::ref(schedule_), cid_, std::ref(is_time_out));
+    Defer defer([&is_time_out, &event_loop_, fd_, timer_id]() {
+      if (is_time_out) {  // 写超时了
+        EventDriven::Event event(fd_);
+        event_loop_.TcpEventClear(&event);
+      } else {
+        event_loop_.TimerCancel(timer_id);
+      }
+    });
+    while (true) {
+      ssize_t ret = write(fd_, buf, size);
+      if (ret >= 0) return ret;                       // 写成功
+      if (EINTR == errno) continue;                   // 调用被中断，则直接重启write调用
+      if (EAGAIN == errno or EWOULDBLOCK == errno) {  // 暂时不可写
+        schedule_.CoroutineYield();                   // 让出cpu，切换到主协程，等待下一次数据可写
+        if (is_time_out) {                            // 写超时了
+          errno = EAGAIN;
+          return -1;  // 写超时，返回-1，并把errno设置为EAGAIN
+        }
+        continue;
+      }
+      return ret;  // 写失败
+    }
+  }
 
   void InitStart() { schedule_.CoroutineResume(cid_); }
 

@@ -43,16 +43,20 @@ class EventLoop {
   }
 
   template <typename Function, Event *event, typename... Args>
-  void TcpModToWriteStart(Function &&handler, Args &&...args) {
+  void TcpModToWriteStart(Event *event, Function &&handler, Args &&...args) {
     EventSetUp(event, EventType::kWrite);
     event->handler = std::bind(std::forward<Function>(handler), std::forward<Args>(args)...);
     EpollCtl::ModToWriteEvent(event->epoll_fd, event->fd, event);
   }
 
+  void TcpEventClear(Event *event) { EpollCtl::ClearEvent(event->epoll_fd, event->fd, false); }
+
   template <typename Function, typename... Args>
   uint64_t TimerStart(int64_t time_out_ms, Function &&handler, Args &&...args) {
     return timer_.Register(time_out_ms, forward<Function>(handler), forward<Args>(args)...);
   }
+
+  void TimerCancel(uint64_t timer_id) { timer_.Cancel(timer_id); }
 
   void Run();
   void Stop();

@@ -50,28 +50,15 @@ void StopHandler(EventDriven::EventLoop& event_loop) {
   event_loop.Stop();  // 停止事件循环
 }
 
-void CoSleep(MyCoroutine::Schedule& schedule, EventDriven::EventLoop& event_loop) {
-  while (true) {
-    auto start_timer = [&event_loop](int64_t time_out_ms, std::function<void()> call_back) {
-      event_loop.TimerStart(time_out_ms, call_back);
-    };
-    schedule.Sleep(3000, start_timer);
-    cout << "CoSleep 3 second" << endl;
-  }
-}
-
 void Handler() {
   std::string echo_message(pkt_size + 1, 'B');
   EventDriven::EventLoop event_loop;
   MyCoroutine::Schedule schedule(client_count);
-  //  BenchMark2::ClientManager client_manager(schedule, event_loop, client_count, ip, port, echo_message, rate_limit);
-  //  event_loop.TimerStart(1, InitStart, std::ref(client_manager));  // 只调用一次，用于初始化启动客户端
-  //  event_loop.TimerStart(1000, RateLimitRefresh, std::ref(client_manager), std::ref(event_loop));  //
-  //  每秒刷新一下限流值
-  int32_t cid = schedule.CoroutineCreate(CoSleep, std::ref(schedule), std::ref(event_loop));
-  schedule.CoroutineResume(cid);
-  //  event_loop.TimerStart(run_time * 1000, StopHandler,
-  //                        std::ref(event_loop));  // 设置定时器，运行时间一到，就退出事件循环
+  BenchMark2::ClientManager client_manager(schedule, event_loop, client_count, ip, port, echo_message, rate_limit);
+  event_loop.TimerStart(1, InitStart, std::ref(client_manager));  // 只调用一次，用于初始化启动客户端
+  event_loop.TimerStart(1000, RateLimitRefresh, std::ref(client_manager), std::ref(event_loop));  // 每秒刷新一下限流值
+  event_loop.TimerStart(run_time * 1000, StopHandler,
+                        std::ref(event_loop));  // 设置定时器，运行时间一到，就退出事件循环
   event_loop.Run();
 }
 
