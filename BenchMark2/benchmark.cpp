@@ -48,6 +48,7 @@ void RateLimitRefresh(BenchMark2::ClientManager& client_manager, EventDriven::Ev
 
 void StopHandler(EventDriven::EventLoop& event_loop) {
   event_loop.Stop();  // 停止事件循环
+  cout << "stop" << endl;
 }
 
 void Handler() {
