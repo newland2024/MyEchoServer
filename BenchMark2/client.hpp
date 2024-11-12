@@ -32,7 +32,7 @@ class Client {
         client.is_stop_ = true;
         client.schedule_.CoroutineYield();
       }
-      if (success_count_ <= 3) {
+      if (client.success_count_ <= 3) {
         // 创建连接
         client.TryConnect(ip, port);
         // 发起请求
