@@ -33,7 +33,7 @@ class Client {
         client.is_stop_ = true;
         client.schedule_.CoroutineYield();
       }
-      if (client.success_count_ <= 3) {
+      if (client.success_count_ < 3) {
         // 创建连接
         client.TryConnect(ip, port);
         // 发起请求
@@ -133,7 +133,11 @@ class Client {
     }
     delete resp_message;
     // TODO 统计相关
-    event_loop_.TcpModToWriteStart(fd_, EventCallBack, std::ref(schedule_), cid_);
+    if (success_count_ < 3) {
+      event_loop_.TcpModToWriteStart(fd_, EventCallBack, std::ref(schedule_), cid_);
+    } else {
+      event_loop_.TcpEventClear(fd_);
+    }
   }
 
   bool CoConnect(std::string ip, int port, int64_t time_out_ms) {
