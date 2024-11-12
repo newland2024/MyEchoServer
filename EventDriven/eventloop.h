@@ -42,7 +42,7 @@ class EventLoop {
     EpollCtl::ModToReadEvent(event->epoll_fd, event->fd, event);
   }
 
-  template <typename Function, Event *event, typename... Args>
+  template <typename Function, typename... Args>
   void TcpModToWriteStart(Event *event, Function &&handler, Args &&...args) {
     EventSetUp(event, EventType::kWrite);
     event->handler = std::bind(std::forward<Function>(handler), std::forward<Args>(args)...);

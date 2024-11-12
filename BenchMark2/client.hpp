@@ -53,7 +53,7 @@ class Client {
       return;
     }
     if (CoConnect(ip, port, 100)) {  // 建立连接，超时时间100ms
-      SetCloseWithRst(fd_);
+      EventDriven::Socket::SetCloseWithRst(fd_);
       return;
     }
     // 执行到这里，连接失败
@@ -93,7 +93,7 @@ class Client {
     if (fd_ < 0) {
       return;
     }
-    Codec codec;
+    MyEcho::Codec codec;
     EventDriven::Event event(fd_);
     event_loop_.TcpModToReadStart(&event, EventCallBack, std::ref(schedule_), cid_);
     bool recv_result = true;
