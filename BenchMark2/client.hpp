@@ -32,12 +32,14 @@ class Client {
         client.is_stop_ = true;
         client.schedule_.CoroutineYield();
       }
-      // 创建连接
-      client.TryConnect(ip, port);
-      // 发起请求
-      client.SendRequest(echo_message);
-      // 接收应答
-      client.RecvResponse(echo_message);
+      if (success_count_ <= 3) {
+        // 创建连接
+        client.TryConnect(ip, port);
+        // 发起请求
+        client.SendRequest(echo_message);
+        // 接收应答
+        client.RecvResponse(echo_message);
+      }
     }
   }
 
@@ -125,6 +127,9 @@ class Client {
     }
     if (echo_message != *resp_message) {
         // TODO
+    } else {
+        success_count_++;
+        cout << "echo req success. " << endl;
     }
     delete resp_message;
     // TODO 统计相关
@@ -226,5 +231,6 @@ class Client {
   int64_t &temp_rate_limit_;
   bool is_stop_{false};
   int fd_{-1};
+  int64_t success_count_{0};
 };
 }  // namespace BenchMark2
