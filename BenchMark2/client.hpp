@@ -133,7 +133,7 @@ class Client {
     }
     delete resp_message;
     // TODO 统计相关
-    event_loop_.TcpModToWriteStart(&event, EventCallBack, std::ref(schedule_), cid_);
+    event_loop_.TcpModToWriteStart(fd_, EventCallBack, std::ref(schedule_), cid_);
   }
 
   bool CoConnect(std::string ip, int port, int64_t time_out_ms) {
