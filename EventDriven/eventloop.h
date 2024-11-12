@@ -49,7 +49,7 @@ class EventLoop {
     EpollCtl::ModToWriteEvent(event->epoll_fd, event->fd, event);
   }
 
-  void TcpEventClear(Event *event) { EpollCtl::ClearEvent(event->epoll_fd, event->fd, false); }
+  void TcpEventClear(int fd) { EpollCtl::ClearEvent(epoll_fd_, fd, false); }
 
   template <typename Function, typename... Args>
   uint64_t TimerStart(int64_t time_out_ms, Function &&handler, Args &&...args) {

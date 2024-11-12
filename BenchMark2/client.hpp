@@ -145,7 +145,7 @@ class Client {
       event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(schedule_), cid_);
       schedule_.CoroutineYield();
       if (is_time_out) {  // 连接超时了
-        event_loop_.TcpEventClear(&event);
+        event_loop_.TcpEventClear(fd_);
         return false;
       }
       event_loop_.TimerCancel(timer_id);
@@ -161,8 +161,7 @@ class Client {
         event_loop_.TimerStart(time_out_ms, TimeOutCallBack, std::ref(schedule_), cid_, std::ref(is_time_out));
     Defer defer([&is_time_out, this, timer_id]() {
       if (is_time_out) {  // 读超时了
-        EventDriven::Event event(fd_);
-        event_loop_.TcpEventClear(&event);
+        event_loop_.TcpEventClear(fd_);
       } else {
         event_loop_.TimerCancel(timer_id);
       }
@@ -189,8 +188,7 @@ class Client {
         event_loop_.TimerStart(time_out_ms, TimeOutCallBack, std::ref(schedule_), cid_, std::ref(is_time_out));
     Defer defer([&is_time_out, this, timer_id]() {
       if (is_time_out) {  // 写超时了
-        EventDriven::Event event(fd_);
-        event_loop_.TcpEventClear(&event);
+        event_loop_.TcpEventClear(fd_);
       } else {
         event_loop_.TimerCancel(timer_id);
       }
