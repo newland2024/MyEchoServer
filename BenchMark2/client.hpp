@@ -159,7 +159,7 @@ class Client {
     bool is_time_out{false};
     uint64_t timer_id =
         event_loop_.TimerStart(time_out_ms, TimeOutCallBack, std::ref(schedule_), cid_, std::ref(is_time_out));
-    Defer defer([&is_time_out, &event_loop_, fd_, timer_id]() {
+    Defer defer([&is_time_out, this, timer_id]() {
       if (is_time_out) {  // 读超时了
         EventDriven::Event event(fd_);
         event_loop_.TcpEventClear(&event);
@@ -187,7 +187,7 @@ class Client {
     bool is_time_out{false};
     uint64_t timer_id =
         event_loop_.TimerStart(time_out_ms, TimeOutCallBack, std::ref(schedule_), cid_, std::ref(is_time_out));
-    Defer defer([&is_time_out, &event_loop_, fd_, timer_id]() {
+    Defer defer([&is_time_out, this, timer_id]() {
       if (is_time_out) {  // 写超时了
         EventDriven::Event event(fd_);
         event_loop_.TcpEventClear(&event);
