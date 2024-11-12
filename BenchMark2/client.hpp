@@ -17,6 +17,7 @@ class Defer {
  private:
   std::function<void(void)> func_;
 };
+
 class Client {
  public:
   Client(MyCoroutine::Schedule &schedule, EventDriven::EventLoop &event_loop, std::string ip, int port,
@@ -96,8 +97,7 @@ class Client {
       return;
     }
     MyEcho::Codec codec;
-    EventDriven::Event event(fd_);
-    event_loop_.TcpModToReadStart(&event, EventCallBack, std::ref(schedule_), cid_);
+    event_loop_.TcpModToReadStart(fd_, EventCallBack, std::ref(schedule_), cid_);
     bool recv_result = true;
     string *resp_message{nullptr};
     while (true) {
@@ -126,15 +126,14 @@ class Client {
       return;
     }
     if (echo_message != *resp_message) {
-        // TODO
+      // TODO
     } else {
-        success_count_++;
-        cout << "echo req success. " << endl;
+      success_count_++;
+      cout << "echo req success. " << endl;
     }
     delete resp_message;
     // TODO 统计相关
-    event_loop_.TcpModToWriteStart(&event, EventCallBack, std::ref(schedule_),
-                                   cid_);
+    event_loop_.TcpModToWriteStart(&event, EventCallBack, std::ref(schedule_), cid_);
   }
 
   bool CoConnect(std::string ip, int port, int64_t time_out_ms) {
@@ -146,8 +145,7 @@ class Client {
       bool is_time_out{false};
       uint64_t timer_id =
           event_loop_.TimerStart(time_out_ms, TimeOutCallBack, std::ref(schedule_), cid_, std::ref(is_time_out));
-      EventDriven::Event event(fd_);
-      event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(schedule_), cid_);
+      event_loop_.TcpWriteStart(fd_, EventCallBack, std::ref(schedule_), cid_);
       schedule_.CoroutineYield();
       if (is_time_out) {  // 连接超时了
         event_loop_.TcpEventClear(fd_);

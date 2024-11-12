@@ -11,7 +11,6 @@ void EventLoop::EventSetUp(Event *event, EventType event_type) {
   event->epoll_fd = epoll_fd_;
   event->events = 0;
   event->type = event_type;
-  event->event_loop = this;
 }
 
 void EventLoop::Run() {
@@ -40,6 +39,7 @@ void EventLoop::Run() {
       Event *event = (Event *)events[i].data.ptr;
       event->events = events[i].events;
       event->handler();
+      delete event;
     }
     if (has_timer) timer_.Run(timer_data);  // 定时器放在最后处理
   }

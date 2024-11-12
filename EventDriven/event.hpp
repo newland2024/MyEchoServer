@@ -15,11 +15,10 @@ class EventLoop;  // 前置类声明
 
 typedef struct Event {
   Event(int fd) { this->fd = fd; }
-  int fd;                        // 文件描述符
-  int epoll_fd;                  // epoll描述符
-  uint32_t events;               // epoll触发的具体事件
-  EventType type;                // 事件类型
-  EventLoop *event_loop;         // 关联的事件循环对象
-  std::function<void()> handler; // 事件处理函数
+  int fd;                         // 文件描述符
+  int epoll_fd;                   // epoll描述符
+  uint32_t events;                // epoll触发的具体事件
+  EventType type;                 // 事件类型
+  std::function<void()> handler;  // 事件处理函数
 } Event;
 }  // namespace EventDriven
