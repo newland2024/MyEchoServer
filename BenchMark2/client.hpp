@@ -228,7 +228,7 @@ class Client {
     schedule_.CoroutineResume(cid_);
   }
   void Stop() { is_running_ = false; }
-  void IsRunning() { return is_running_; }
+  bool IsRunning() { return is_running_; }
   
 
  private:
