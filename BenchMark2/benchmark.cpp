@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
   //   PctStat pct_stat;
   std::string echo_message(pkt_size + 1, 'B');
   EventDriven::EventLoop event_loop;
-  MyCoroutine::Schedule schedule(client_count);
+  MyCoroutine::Schedule schedule(1000);
   BenchMark2::ClientManager client_manager(schedule, event_loop, client_count, ip, port, echo_message, rate_limit);
   for (int64_t i = 0; i < thread_count; i++) {
     threads[i] = std::thread(Handler, std::ref(event_loop), std::ref(schedule), std::ref(client_manager));
