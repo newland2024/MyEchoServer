@@ -39,7 +39,6 @@ void EventLoop::Run() {
       Event *event = (Event *)events[i].data.ptr;
       event->events = events[i].events;
       event->handler();
-      delete event;
     }
     if (has_timer) timer_.Run(timer_data);  // 定时器放在最后处理
   }
