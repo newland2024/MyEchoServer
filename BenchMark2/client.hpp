@@ -33,18 +33,18 @@ class Client {
         client.is_stop_ = true;
         client.schedule_.CoroutineYield();
       }
-      if (client.success_count_ < 3) {
-        // 创建连接
-        client.TryConnect(ip, port);
-        // 发起请求
-        EventDriven::Event event(client.fd_);
-        client.event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(client.schedule_), client.cid_);
-        client.SendRequest(echo_message);
-        // 接收应答
-        client.event_loop_.TcpModToReadStart(&event, EventCallBack, std::ref(client.schedule_), client.cid_);
-        client.RecvResponse(echo_message);
-        client.event_loop_.TcpEventClear(client.fd_);
-      }
+    //   if (client.success_count_ < 3) {
+    //     // 创建连接
+    //     client.TryConnect(ip, port);
+    //     // 发起请求
+    //     EventDriven::Event event(client.fd_);
+    //     client.event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(client.schedule_), client.cid_);
+    //     client.SendRequest(echo_message);
+    //     // 接收应答
+    //     client.event_loop_.TcpModToReadStart(&event, EventCallBack, std::ref(client.schedule_), client.cid_);
+    //     client.RecvResponse(echo_message);
+    //     client.event_loop_.TcpEventClear(client.fd_);
+    //   }
     }
     cout << "client stop" << endl;
   }
