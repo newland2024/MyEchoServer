@@ -37,9 +37,13 @@ class Client {
         // 创建连接
         client.TryConnect(ip, port);
         // 发起请求
+        EventDriven::Event event(fd_);
+        client.event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(schedule_), cid_);
         client.SendRequest(echo_message);
         // 接收应答
+        client.event_loop_.TcpModToReadStart(&event, EventCallBack, std::ref(schedule_), cid_);
         client.RecvResponse(echo_message);
+        client.event_loop_.TcpEventClear(fd_);
       }
     }
   }
@@ -97,7 +101,6 @@ class Client {
       return;
     }
     MyEcho::Codec codec;
-    event_loop_.TcpModToReadStart(fd_, EventCallBack, std::ref(schedule_), cid_);
     bool recv_result = true;
     string *resp_message{nullptr};
     while (true) {
@@ -133,11 +136,6 @@ class Client {
     }
     delete resp_message;
     // TODO 统计相关
-    if (success_count_ < 3) {
-      event_loop_.TcpModToWriteStart(fd_, EventCallBack, std::ref(schedule_), cid_);
-    } else {
-      event_loop_.TcpEventClear(fd_);
-    }
   }
 
   bool CoConnect(std::string ip, int port, int64_t time_out_ms) {
@@ -147,15 +145,20 @@ class Client {
     }
     if (ret == EINPROGRESS) {
       bool is_time_out{false};
-      uint64_t timer_id =
-          event_loop_.TimerStart(time_out_ms, TimeOutCallBack, std::ref(schedule_), cid_, std::ref(is_time_out));
-      event_loop_.TcpWriteStart(fd_, EventCallBack, std::ref(schedule_), cid_);
-      schedule_.CoroutineYield();
-      if (is_time_out) {  // 连接超时了
+      uint64_t timer_id = event_loop_.TimerStart(time_out_ms, TimeOutCallBack, std::ref(schedule_), cid_, std::ref(is_time_out));
+      EventDriven::Event event(fd_);
+      event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(schedule_),
+                                cid_);
+      Defer defer([this, &is_time_out]() {
         event_loop_.TcpEventClear(fd_);
+        if (not is_time_out) {
+          event_loop_.TimerCancel(timer_id);
+        }
+      });
+      schedule_.CoroutineYield();
+      if (is_time_out) { // 连接超时了
         return false;
       }
-      event_loop_.TimerCancel(timer_id);
       return EventDriven::Socket::IsConnectSuccess(fd_);
     }
     // 执行到这里连接失败

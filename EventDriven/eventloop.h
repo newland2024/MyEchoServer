@@ -22,32 +22,28 @@ class EventLoop {
   EventLoop();
 
   template <typename Function, typename... Args>
-  void TcpReadStart(int fd, Function &&handler, Args &&...args) {
-    Event *event = new Event(fd);
+  void TcpReadStart(Event *event, Function &&handler, Args &&...args) {
     EventSetUp(event, EventType::kRead);
     event->handler = std::bind(std::forward<Function>(handler), std::forward<Args>(args)...);
     EpollCtl::AddReadEvent(event->epoll_fd, event->fd, event);
   }
 
   template <typename Function, typename... Args>
-  void TcpWriteStart(int fd, Function &&handler, Args &&...args) {
-    Event *event = new Event(fd);
+  void TcpWriteStart(Event *event, Function &&handler, Args &&...args) {
     EventSetUp(event, EventType::kWrite);
     event->handler = std::bind(std::forward<Function>(handler), std::forward<Args>(args)...);
     EpollCtl::AddWriteEvent(event->epoll_fd, event->fd, event);
   }
 
   template <typename Function, typename... Args>
-  void TcpModToReadStart(int fd, Function &&handler, Args &&...args) {
-    Event *event = new Event(fd);
+  void TcpModToReadStart(Event *event, Function &&handler, Args &&...args) {
     EventSetUp(event, EventType::kRead);
     event->handler = std::bind(std::forward<Function>(handler), std::forward<Args>(args)...);
     EpollCtl::ModToReadEvent(event->epoll_fd, event->fd, event);
   }
 
   template <typename Function, typename... Args>
-  void TcpModToWriteStart(int fd, Function &&handler, Args &&...args) {
-    Event *event = new Event(fd);
+  void TcpModToWriteStart(Event *event, Function &&handler, Args &&...args) {
     EventSetUp(event, EventType::kWrite);
     event->handler = std::bind(std::forward<Function>(handler), std::forward<Args>(args)...);
     EpollCtl::ModToWriteEvent(event->epoll_fd, event->fd, event);
