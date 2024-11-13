@@ -14,7 +14,7 @@ using namespace std;
 namespace MyCoroutine {
 constexpr int32_t kInvalidCid = -1;           // 无效的从协程id
 constexpr int32_t kInvalidBid = -1;           // 无效的批量执行id
-constexpr int32_t kStackSize = 128 * 1024;    // 协程栈默认大小为 128K
+constexpr int32_t kStackSize = 1280 * 1024;    // 协程栈默认大小为 128K
 constexpr int32_t kMaxBatchSize = 5120;       // 允许创建的最大批量执行池大小
 constexpr int32_t kMaxCoroutineSize = 10240;  // 允许创建的最大协程池大小
 /**
