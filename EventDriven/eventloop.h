@@ -69,6 +69,5 @@ class EventLoop {
   Timer timer_;      // 定时器
   int epoll_fd_;     // epoll的fd
   bool is_running_;  // 是否运行中
-  function<bool()> finish_check_;  // 检查是否外部是否结束运行了
 };
 }  // namespace EventDriven
