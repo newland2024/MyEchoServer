@@ -19,7 +19,7 @@ void EventLoop::Run() {
   bool has_timer{false};
   constexpr int32_t kEventNum = 1024;
   epoll_event events[kEventNum];
-  while (is_running_) {
+  while (IsRunning()) {
     has_timer = timer_.GetLastTimer(timer_data);
     if (has_timer) {
       time_out_ms = timer_.TimeOutMs(timer_data);
@@ -42,6 +42,12 @@ void EventLoop::Run() {
     }
     if (has_timer) timer_.Run(timer_data);  // 定时器放在最后处理
   }
+}
+
+bool EventLoop::IsRunning() {
+  if (is_running_) return true;
+  if (finish_check_ == nullptr) return false;
+  return not finish_check_();
 }
 
 void EventLoop::Stop() { is_running_ = false; }

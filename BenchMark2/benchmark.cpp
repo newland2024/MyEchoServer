@@ -46,9 +46,17 @@ void RateLimitRefresh(BenchMark2::ClientManager& client_manager, EventDriven::Ev
   event_loop.TimerStart(1000, RateLimitRefresh, std::ref(client_manager), std::ref(event_loop));
 }
 
-void StopHandler(EventDriven::EventLoop& event_loop) {
-  event_loop.Stop();  // 停止事件循环
-  cout << "stop" << endl;
+void StopHandler(EventDriven::EventLoop& event_loop, BenchMark2::ClientManager& client_manager, MyCoroutine::Schedule& schedule) {
+  client_manager.Stop();  // 停止客户端请求发送，让每个客户端的协程陆续执行完毕。
+  if (schedule.IsFinish()) {
+    event_loop.Stop();  // 所以协程都执行完退出之后，再停止事件的循环
+    cout << "stop" << endl;
+  } else {
+    cout << "after 1 second, try stop again" << endl;
+    // 隔1秒再尝试退出
+    event_loop.TimerStart(1000, StopHandler,
+                        std::ref(event_loop), std::ref(client_manager), std::ref(schedule));  // 退出事件循环定时器
+  }
 }
 
 void Handler() {
@@ -59,7 +67,7 @@ void Handler() {
   event_loop.TimerStart(1, InitStart, std::ref(client_manager));  // 只调用一次，用于初始化启动客户端
   event_loop.TimerStart(1000, RateLimitRefresh, std::ref(client_manager), std::ref(event_loop));  // 每秒刷新一下限流值
   event_loop.TimerStart(run_time * 1000, StopHandler,
-                        std::ref(event_loop));  // 设置定时器，运行时间一到，就退出事件循环
+                        std::ref(event_loop), std::ref(client_manager), std::ref(schedule));  // 退出事件循环定时器
   event_loop.Run();
 }
 

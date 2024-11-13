@@ -36,7 +36,6 @@ Schedule::Schedule(int32_t coroutine_count, int32_t max_concurrency_in_batch)
   coroutine_count_ = (max_concurrency_in_batch_ + 1) * coroutine_count_;
   for (int32_t i = 0; i < coroutine_count_; i++) {
     coroutines_[i] = new Coroutine;
-    coroutines_[i]->stack = nullptr;
     coroutines_[i]->cid = i;
   }
   for (int32_t i = 0; i < kMaxBatchSize; i++) {

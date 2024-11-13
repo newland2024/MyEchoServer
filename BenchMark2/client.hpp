@@ -27,7 +27,7 @@ class Client {
   }
   static void Run(Client &client, std::string ip, int port,
                   std::string echo_message) {  // 启动整个请求循环，在从协程中执行
-    while (true) {
+    while (client.IsRunning()) {
       client.temp_rate_limit_--;
       if (client.temp_rate_limit_ <= 0) {  // 已经触达每秒的限频，则暂停请求
         client.is_stop_ = true;
@@ -220,7 +220,6 @@ class Client {
   }
 
   void InitStart() { schedule_.CoroutineResume(cid_); }
-
   void ReStart() {
     if (not is_stop_) {
       return;
@@ -228,6 +227,9 @@ class Client {
     is_stop_ = false;
     schedule_.CoroutineResume(cid_);
   }
+  void Stop() { is_running_ = false; }
+  void IsRunning() { return is_running_; }
+  
 
  private:
   MyCoroutine::Schedule &schedule_;
@@ -237,5 +239,6 @@ class Client {
   bool is_stop_{false};
   int fd_{-1};
   int64_t success_count_{0};
+  bool is_running_{true};
 };
 }  // namespace BenchMark2

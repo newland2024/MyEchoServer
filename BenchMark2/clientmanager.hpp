@@ -35,6 +35,11 @@ public:
       clients_[i]->ReStart();
     }
   }
+  void Stop() {
+    for (int64_t i = 0; i < client_count_; i++) {
+      clients_[i]->Stop();
+    }
+  }
   void RateLimitRefresh() { temp_rate_limit_ = rate_limit_; }
 
 private:
