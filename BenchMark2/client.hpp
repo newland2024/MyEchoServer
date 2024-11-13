@@ -37,13 +37,13 @@ class Client {
         // 创建连接
         client.TryConnect(ip, port);
         // 发起请求
-        EventDriven::Event event(fd_);
-        client.event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(schedule_), cid_);
+        EventDriven::Event event(client.fd_);
+        client.event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(client.schedule_), client.cid_);
         client.SendRequest(echo_message);
         // 接收应答
-        client.event_loop_.TcpModToReadStart(&event, EventCallBack, std::ref(schedule_), cid_);
+        client.event_loop_.TcpModToReadStart(&event, EventCallBack, std::ref(client.schedule_), client.cid_);
         client.RecvResponse(echo_message);
-        client.event_loop_.TcpEventClear(fd_);
+        client.event_loop_.TcpEventClear(client.fd_);
       }
     }
   }
@@ -149,7 +149,7 @@ class Client {
       EventDriven::Event event(fd_);
       event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(schedule_),
                                 cid_);
-      Defer defer([this, &is_time_out]() {
+      Defer defer([this, &is_time_out, timer_id]() {
         event_loop_.TcpEventClear(fd_);
         if (not is_time_out) {
           event_loop_.TimerCancel(timer_id);
