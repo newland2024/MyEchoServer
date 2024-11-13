@@ -46,6 +46,7 @@ class Client {
         client.event_loop_.TcpEventClear(client.fd_);
       }
     }
+    cout << "client stop" << endl;
   }
 
   static void EventCallBack(MyCoroutine::Schedule &schedule, int32_t cid) { schedule.CoroutineResume(cid); }
