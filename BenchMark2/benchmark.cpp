@@ -59,9 +59,7 @@ void StopHandler(EventDriven::EventLoop& event_loop, BenchMark2::ClientManager& 
   }
 }
 
-void Handler(EventDriven::EventLoop& event_loop, MyCoroutine::Schedule& schedule, BenchMark2::ClientManager& client_manager) {
-  std::string echo_message(pkt_size + 1, 'B');
-  
+void Handler(EventDriven::EventLoop& event_loop, MyCoroutine::Schedule& schedule, BenchMark2::ClientManager& client_manager) {  
   event_loop.TimerStart(1, InitStart, std::ref(client_manager));  // 只调用一次，用于初始化启动客户端
   event_loop.TimerStart(1000, RateLimitRefresh, std::ref(client_manager), std::ref(event_loop));  // 每秒刷新一下限流值
   event_loop.TimerStart(run_time * 1000, StopHandler,
@@ -86,6 +84,7 @@ int main(int argc, char* argv[]) {
   //   constexpr key_t kShmKey = 12345; // 分配共享内存的key。
   //   SumStat sum_stat(kShmKey);
   //   PctStat pct_stat;
+  std::string echo_message(pkt_size + 1, 'B');
   EventDriven::EventLoop event_loop;
   MyCoroutine::Schedule schedule(client_count);
   BenchMark2::ClientManager client_manager(schedule, event_loop, client_count, ip, port, echo_message, rate_limit);
