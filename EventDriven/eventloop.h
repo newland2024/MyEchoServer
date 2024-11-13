@@ -60,7 +60,6 @@ class EventLoop {
 
   void Run();
   void Stop();
-  void SetFinishCheck(function<bool()> finish_check) { finish_check_ = finish_check; }
 
  private:
   void EventSetUp(Event *event, EventType event_type);
