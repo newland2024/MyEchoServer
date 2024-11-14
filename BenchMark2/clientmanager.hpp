@@ -43,7 +43,7 @@ public:
   void RateLimitRefresh() { temp_rate_limit_ = rate_limit_; }
 
 private:
-  MyCoroutine::Schedule schedule_;
+  MyCoroutine::Schedule& schedule_;
   Client **clients_;
   int64_t client_count_;
   int64_t rate_limit_;       // 请求限流值
