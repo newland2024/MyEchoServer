@@ -4,8 +4,8 @@
 
 #include "../common/cmdline.h"
 #include "../common/epollctl.hpp"
+#include "../common/stat.hpp"
 #include "clientmanager.hpp"
-#include "stat.hpp"
 #include "timer.hpp"
 
 using namespace std;

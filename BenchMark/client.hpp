@@ -10,8 +10,8 @@
 #include "../common/codec.hpp"
 #include "../common/epollctl.hpp"
 #include "../common/utils.hpp"
-#include "percentile.hpp"
-#include "stat.hpp"
+#include "../common/percentile.hpp"
+#include "../common/stat.hpp"
 
 using namespace std;
 
@@ -93,20 +93,20 @@ class EchoClient {
     bool is_valid = true;
     // connect超时，超时时间100ms
     if (Connecting == status_) {
-      if ((GetCurrentTimeUs() - last_connect_time_us_) / 1000 >= 100) {
+      if ((MyEcho::GetCurrentTimeUs() - last_connect_time_us_) / 1000 >= 100) {
         is_valid = false;
         failure_count_++;
         connect_failure_count_++;
       }
     }
     // 写超时，超时时间1000ms
-    if (SendRequest == status_ && (GetCurrentTimeUs() - last_send_req_time_us_) / 1000 >= 1000) {
+    if (SendRequest == status_ && (MyEcho::GetCurrentTimeUs() - last_send_req_time_us_) / 1000 >= 1000) {
       is_valid = false;
       failure_count_++;
       write_failure_count_++;
     }
     // 读超时，超时时间1000ms
-    if (RecvResponse == status_ && (GetCurrentTimeUs() - last_recv_resp_time_us_) / 1000 >= 1000) {
+    if (RecvResponse == status_ && (MyEcho::GetCurrentTimeUs() - last_recv_resp_time_us_) / 1000 >= 1000) {
       is_valid = false;
       failure_count_++;
       read_failure_count_++;
@@ -124,7 +124,7 @@ class EchoClient {
       return;
     }
     status_ = SendRequest;
-    last_send_req_time_us_ = GetCurrentTimeUs();
+    last_send_req_time_us_ = MyEcho::GetCurrentTimeUs();
     AddWriteEvent(epoll_fd_, fd_, this);
   }
   void Connect(const std::string& ip, int64_t port) {
@@ -152,7 +152,7 @@ class EchoClient {
     }
     if (errno == EINPROGRESS) {
       status_ = Connecting;
-      last_connect_time_us_ = GetCurrentTimeUs();
+      last_connect_time_us_ = MyEcho::GetCurrentTimeUs();
       AddWriteEvent(epoll_fd_, fd_, this);  // 监控可写事件
       return;
     }
@@ -203,7 +203,7 @@ class EchoClient {
     if (0 == err) {
       setLinger();
       status_ = ConnectSuccess;
-      int64_t connect_spend_time = GetCurrentTimeUs() - last_connect_time_us_;
+      int64_t connect_spend_time = MyEcho::GetCurrentTimeUs() - last_connect_time_us_;
       percentile_->ConnectSpendTimeStat(connect_spend_time);
       if (is_debug_) {
         cout << "connect success. connect_spend_time=" << connect_spend_time << endl;
@@ -221,7 +221,7 @@ class EchoClient {
     }
     (*temp_rate_limit_)--;
     status_ = SendRequest;
-    last_send_req_time_us_ = GetCurrentTimeUs();
+    last_send_req_time_us_ = MyEcho::GetCurrentTimeUs();
     ssize_t ret = write(fd_, send_pkt_.Data() + send_len_, send_pkt_.UseLen() - send_len_);
     if (ret < 0) {
       if (EINTR == errno || EAGAIN == errno || EWOULDBLOCK == errno) return true;
@@ -232,14 +232,14 @@ class EchoClient {
     if (send_len_ == send_pkt_.UseLen()) {
       status_ = RecvResponse;
       ModToReadEvent(epoll_fd_, fd_, this);
-      last_recv_resp_time_us_ = GetCurrentTimeUs();
+      last_recv_resp_time_us_ = MyEcho::GetCurrentTimeUs();
     }
     return true;
   }
 
   bool recvResponse() {
     ssize_t ret = read(fd_, codec_.Data(), codec_.Len());
-    last_recv_resp_time_us_ = GetCurrentTimeUs();
+    last_recv_resp_time_us_ = MyEcho::GetCurrentTimeUs();
     if (ret == 0) {  // 对端关闭连接
       status_ = Finish;
       ClearEvent(epoll_fd_, fd_);
@@ -270,7 +270,7 @@ class EchoClient {
     last_recv_resp_time_us_ = 0;
     success_count_++;  // 统计请求成功数
     status_ = SendRequest;
-    last_send_req_time_us_ = GetCurrentTimeUs();
+    last_send_req_time_us_ = MyEcho::GetCurrentTimeUs();
     codec_.Reset();
     percentile_->InterfaceSpendTimeStat(spend_time_us);
     double pct50{0}, pct95{0}, pct99{0}, pct999{0};
@@ -283,12 +283,6 @@ class EchoClient {
       ClearEvent(epoll_fd_, fd_);
     }
     return true;
-  }
-
-  int64_t GetCurrentTimeUs() {
-    struct timeval current;
-    gettimeofday(&current, NULL);
-    return current.tv_sec * 1000000 + current.tv_usec;  //计算运行的时间，单位微秒
   }
 
  private:

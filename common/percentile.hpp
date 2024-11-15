@@ -8,7 +8,6 @@
 
 using namespace std;
 
-namespace BenchMark {
 class Percentile {
  public:
   void ConnectSpendTimeStat(int64_t value) { connect_spend_time_stat_data_.push_back(value); }
@@ -68,5 +67,3 @@ class Percentile {
   std::vector<int64_t> connect_spend_time_stat_data_;
   std::vector<int64_t> interface_spend_time_stat_data_;
 };
-
-}  // namespace BenchMark

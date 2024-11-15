@@ -9,7 +9,6 @@
 
 #include "percentile.hpp"
 
-namespace BenchMark {
 // pct指标统计
 class PctStat {
  public:
@@ -106,4 +105,3 @@ class SumStat {
   std::atomic<int64_t>* connect_failure_count_{nullptr};  // 细分的失败统计，连接失败数
   std::atomic<int64_t>* try_connect_count_{nullptr};      // 尝试连接的次数
 };
-}  // namespace BenchMark

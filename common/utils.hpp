@@ -70,7 +70,13 @@ inline void SetTimeOut(int fd, int64_t sec, int64_t usec) {
   assert(setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) != -1);
 }
 
-int SendFd(int sock_fd, int fd) {
+inline int64_t GetCurrentTimeUs() {
+  struct timeval current;
+  gettimeofday(&current, NULL);
+  return current.tv_sec * 1000000 + current.tv_usec; //计算运行的时间，单位微秒
+}
+
+inline int SendFd(int sock_fd, int fd) {
   // 发送文件描述符
   struct msghdr msg = {0};
   struct iovec iov[1];
@@ -94,7 +100,7 @@ int SendFd(int sock_fd, int fd) {
   return ret;
 }
 
-int RecvFd(int sock_fd, int &fd) {
+inline int RecvFd(int sock_fd, int &fd) {
   // 接收文件描述符
   struct msghdr msg = {0};
   struct iovec iov[1];

@@ -242,7 +242,12 @@ class Client {
   }
   void SetFinish() { is_running_ = false; }
   bool IsRunning() { return is_running_; }
-  
+
+  int64_t GetCurrentTimeUs() {
+    struct timeval current;
+    gettimeofday(&current, NULL);
+    return current.tv_sec * 1000000 + current.tv_usec;  //计算运行的时间，单位微秒
+  }
 
  private:
   MyCoroutine::Schedule &schedule_;
