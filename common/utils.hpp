@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <sys/sysinfo.h>
 #include <sys/un.h>
+#include <sys/time.h>
 
 #include <functional>
 #include <iostream>
