@@ -52,7 +52,7 @@ class Client {
       int64_t req_begin_time{0};
       // 发起请求
       if (client.fd_ > 0) {
-        begin_time = MyEcho::GetCurrentTimeUs();
+        req_begin_time = MyEcho::GetCurrentTimeUs();
         EventDriven::Event event(client.fd_);
         client.event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(client.schedule_), client.cid_);
         client.SendRequest(echo_message);
