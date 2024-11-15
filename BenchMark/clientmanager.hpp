@@ -4,8 +4,8 @@
 #include <string>
 
 #include "client.hpp"
-#include "percentile.hpp"
-#include "stat.hpp"
+#include "../common/percentile.hpp"
+#include "../common/stat.hpp"
 #include "timer.hpp"
 
 namespace BenchMark {
