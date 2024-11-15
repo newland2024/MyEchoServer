@@ -12,7 +12,7 @@ public:
   ClientManager(MyCoroutine::Schedule &schedule,
                 EventDriven::EventLoop &event_loop, int64_t client_count,
                 std::string ip, int port, std::string echo_message,
-                int64_t rate_limit, PctStat &pct_stat, SumStat &sum_stat)
+                int64_t rate_limit, SumStat &sum_stat, PctStat &pct_stat)
       : schedule_(schedule), client_count_(client_count),
         rate_limit_(rate_limit), temp_rate_limit_(rate_limit),
         pct_stat_(pct_stat), sum_stat_(sum_stat) {
@@ -20,7 +20,7 @@ public:
     for (int64_t i = 0; i < client_count_; i++) {
       clients_[i] =
           new Client(schedule, event_loop, ip, port, echo_message,
-                     temp_rate_limit_, pct_stat_, sum_stat_, percentile_);
+                     temp_rate_limit_, sum_stat_, pct_stat_, percentile_);
     }
   }
   ~ClientManager() {

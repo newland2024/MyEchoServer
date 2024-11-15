@@ -33,11 +33,11 @@ class Client {
  public:
    Client(MyCoroutine::Schedule &schedule, EventDriven::EventLoop &event_loop,
           std::string ip, int port, std::string echo_message,
-          int64_t &temp_rate_limit, PctStat &pct_stat, SumStat &sum_stat,
+          int64_t &temp_rate_limit, SumStat &sum_stat, PctStat &pct_stat,
           Percentile &percentile)
        : schedule_(schedule), event_loop_(event_loop),
-         temp_rate_limit_(temp_rate_limit), pct_stat_(pct_stat),
-         sum_stat_(sum_stat), percentile_(percentile) {
+         temp_rate_limit_(temp_rate_limit), sum_stat_(sum_stat),
+         pct_stat_(pct_stat), percentile_(percentile) {
      cid_ = schedule_.CoroutineCreate(Client::Run, std::ref(*this), ip, port,
                                       echo_message);
    }
