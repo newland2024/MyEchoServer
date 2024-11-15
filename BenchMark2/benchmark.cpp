@@ -55,21 +55,19 @@ void StopHandler(EventDriven::EventLoop& event_loop, BenchMark2::ClientManager& 
   client_manager.SetFinish();  // 停止客户端请求发送，让每个客户端的协程陆续执行完毕。
   if (schedule.IsFinish()) {
     event_loop.SetFinish();  // 所以协程都执行完退出之后，再停止事件的循环
-    cout << "SetFinish" << endl;
   } else {
-    cout << "after 1 second, try set finish again" << endl;
     // 隔1秒再尝试退出
     event_loop.TimerStart(1000, StopHandler, std::ref(event_loop), std::ref(client_manager),
                           std::ref(schedule));  // 退出事件循环定时器
   }
 }
 
-void Handler(SumStat& sum_stat, PctStat& pct_stat) {
+void Handler(int64_t client_count, int64_t max_req_count, SumStat& sum_stat, PctStat& pct_stat) {
   std::string echo_message(pkt_size + 1, 'B');
   EventDriven::EventLoop event_loop;
-  MyCoroutine::Schedule schedule(1000);
-  BenchMark2::ClientManager client_manager(schedule, event_loop, client_count, ip, port, echo_message, rate_limit,
-                                           sum_stat, pct_stat);
+  MyCoroutine::Schedule schedule(client_count);
+  BenchMark2::ClientManager client_manager(schedule, event_loop, client_count, max_req_count, ip, port, echo_message,
+                                           rate_limit, sum_stat, pct_stat);
   event_loop.TimerStart(1, InitStart, std::ref(client_manager));  // 只调用一次，用于初始化启动客户端
   event_loop.TimerStart(1000, RateLimitRefresh, std::ref(client_manager), std::ref(event_loop));  // 每秒刷新一下限流值
   event_loop.TimerStart(run_time * 1000, StopHandler, std::ref(event_loop), std::ref(client_manager),
@@ -101,7 +99,7 @@ int main(int argc, char* argv[]) {
   SumStat sum_stat(kShmKey);         // 原子操作，也是线程安全的
   PctStat pct_stat;                  // 线程安全
   for (int64_t i = 0; i < thread_count; i++) {
-    threads[i] = std::thread(Handler, std::ref(sum_stat), std::ref(pct_stat));
+    threads[i] = std::thread(Handler, client_count, max_req_count, std::ref(sum_stat), std::ref(pct_stat));
   }
   for (int64_t i = 0; i < thread_count; i++) {
     threads[i].join();

@@ -3,9 +3,9 @@
 #include <mutex>
 #include <string>
 
-#include "client.hpp"
 #include "../common/percentile.hpp"
 #include "../common/stat.hpp"
+#include "client.hpp"
 #include "timer.hpp"
 
 namespace BenchMark {
@@ -69,8 +69,6 @@ class ClientManager {
     int64_t try_connect_count{0};
     client->GetDealStat(success_count, failure_count, connect_failure_count, read_failure_count, write_failure_count,
                         try_connect_count);
-    assert(failure_count <= 1 && connect_failure_count <= 1 && read_failure_count <= 1 && write_failure_count <= 1 &&
-           try_connect_count <= 1);
     assert(failure_count == (connect_failure_count + read_failure_count + write_failure_count));
     sum_stat_->DoStat(success_count, failure_count, read_failure_count, write_failure_count, connect_failure_count,
                       try_connect_count);

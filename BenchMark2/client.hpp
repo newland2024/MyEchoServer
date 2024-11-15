@@ -33,10 +33,10 @@ typedef struct ClientStat {
 class Client {
  public:
   Client(MyCoroutine::Schedule &schedule, EventDriven::EventLoop &event_loop, std::string ip, int port,
-         std::string echo_message, int64_t &temp_rate_limit, SumStat &sum_stat, PctStat &pct_stat,
-         Percentile &percentile)
-      : schedule_(schedule), event_loop_(event_loop), temp_rate_limit_(temp_rate_limit), sum_stat_(sum_stat),
-        pct_stat_(pct_stat), percentile_(percentile) {
+         std::string echo_message, int64_t max_req_count, int64_t &temp_rate_limit, SumStat &sum_stat,
+         PctStat &pct_stat, Percentile &percentile)
+      : schedule_(schedule), event_loop_(event_loop), max_req_count_(max_req_count), temp_rate_limit_(temp_rate_limit),
+        sum_stat_(sum_stat), pct_stat_(pct_stat), percentile_(percentile) {
     cid_ = schedule_.CoroutineCreate(Client::Run, std::ref(*this), ip, port, echo_message);
   }
   static void Run(Client &client, std::string ip, int port,
@@ -66,8 +66,9 @@ class Client {
         client.event_loop_.TcpEventClear(client.fd_);
       }
     }
-    cout << "client_stat. success = " << client.stat_.success_count << ", failure = " << client.stat_.failure_count
-         << endl;
+    assert(stat_.failure_count == (stat_.connect_failure_count + stat_.read_failure_count + stat_.write_failure_count));
+    sum_stat_.DoStat(stat_.success_count, stat_.failure_count, stat_.read_failure_count, stat_.write_failure_count,
+                     stat_.connect_failure_count, stat_.try_connect_count);
   }
 
   static void EventCallBack(MyCoroutine::Schedule &schedule, int32_t cid) { schedule.CoroutineResume(cid); }
@@ -164,6 +165,10 @@ class Client {
     double pct50{0}, pct95{0}, pct99{0}, pct999{0};
     if (percentile_.TryPrintSpendTimePctData(pct50, pct95, pct99, pct999)) {
       pct_stat_.InterfaceSpendTimeStat(pct50, pct95, pct99, pct999);
+    }
+    if (stat_.success_count % max_req_count_ == 0) {  // 达到单次连接最大请求数
+      close(fd_);
+      fd_ = -1;
     }
   }
 
@@ -270,6 +275,7 @@ class Client {
   EventDriven::EventLoop &event_loop_;
   int fd_{-1};
   int32_t cid_{-1};
+  int64_t max_req_count_;
   int64_t &temp_rate_limit_;
   bool is_stop_{false};
   bool is_running_{true};
