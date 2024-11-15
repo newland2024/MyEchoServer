@@ -54,7 +54,6 @@ class Client {
       client.RecvResponse(echo_message);
       client.event_loop_.TcpEventClear(client.fd_);
     }
-    cout << "client stop, success = " << client.success_count_ << endl;
   }
 
   static void EventCallBack(MyCoroutine::Schedule &schedule, int32_t cid) { schedule.CoroutineResume(cid); }
@@ -68,11 +67,14 @@ class Client {
     if (fd_ >= 0) {
       return;
     }
+    stat_.try_connect_count++;
     if (CoConnect(ip, port, 100)) {  // 建立连接，超时时间100ms
       EventDriven::Socket::SetCloseWithRst(fd_);
       return;
     }
     // 执行到这里，连接失败
+    stat_.failure_count++;
+    stat_.connect_failure_count++;
     close(fd_);
     fd_ = -1;
     return;
@@ -99,10 +101,10 @@ class Client {
     if (not send_result) {
       close(fd_);
       fd_ = -1;
-      // TODO 统计相关
+      stat_.failure_count++;
+      stat_.write_failure_count++;
       return;
     }
-    // TODO 统计相关
   }
 
   void RecvResponse(const std::string &echo_message) {
@@ -134,12 +136,13 @@ class Client {
     if (not recv_result) {
       close(fd_);
       fd_ = -1;
-      // TODO 统计相关
+      stat_.failure_count++;
+      stat_.read_failure_count++;
       return;
     }
     assert(echo_message == *resp_message);
     delete resp_message;
-    stat_.success++;
+    stat_.success_count++;
   }
 
   bool CoConnect(std::string ip, int port, int64_t time_out_ms) {
