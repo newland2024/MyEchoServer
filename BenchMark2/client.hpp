@@ -265,8 +265,8 @@ class Client {
   bool is_stop_{false};
   bool is_running_{true};
   ClientStat stat_;
-  PctStat &pct_stat_;        // pct统计（全局）
   SumStat &sum_stat_;        // 汇总统计（全局）
+  PctStat &pct_stat_;        // pct统计（全局）
   Percentile &percentile_;    // 用于统计请求耗时的pctxx数值（线程各自一份）
 };
 }  // namespace BenchMark2
