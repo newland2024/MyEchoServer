@@ -9,6 +9,7 @@
 #include "common/packet.hpp"
 #include "common/percentile.hpp"
 #include "common/stat.hpp"
+#include "common/utils.hpp"
 
 namespace BenchMark2 {
 class Defer {
