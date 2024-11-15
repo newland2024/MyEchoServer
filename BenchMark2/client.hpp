@@ -46,14 +46,20 @@ class Client {
       // 创建连接
       client.TryConnect(ip, port);
       // 发起请求
-      EventDriven::Event event(client.fd_);
-      client.event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(client.schedule_), client.cid_);
-      client.SendRequest(echo_message);
+      if (client.fd_ > 0) {
+        EventDriven::Event event(client.fd_);
+        client.event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(client.schedule_), client.cid_);
+        client.SendRequest(echo_message);
+      }
       // 接收应答
-      client.event_loop_.TcpModToReadStart(&event, EventCallBack, std::ref(client.schedule_), client.cid_);
-      client.RecvResponse(echo_message);
-      client.event_loop_.TcpEventClear(client.fd_);
+      if (client.fd_ > 0) {
+        EventDriven::Event event(client.fd_);
+        client.event_loop_.TcpModToReadStart(&event, EventCallBack, std::ref(client.schedule_), client.cid_);
+        client.RecvResponse(echo_message);
+        client.event_loop_.TcpEventClear(client.fd_);
+      }
     }
+    cout << "client_stat. success = " << client.stat_.success_count << ", failure = " << client.stat_.failure_count << endl;
   }
 
   static void EventCallBack(MyCoroutine::Schedule &schedule, int32_t cid) { schedule.CoroutineResume(cid); }
@@ -242,8 +248,8 @@ class Client {
   MyCoroutine::Schedule &schedule_;
   EventDriven::EventLoop &event_loop_;
   int fd_{-1};
-  int32_t cid_;
-  int64_t &temp_rate_limit_;
+  int32_t cid_{-1};
+  int64_t &temp_rate_limit_{0};
   bool is_stop_{false};
   bool is_running_{true};
   ClientStat stat_;
