@@ -66,13 +66,14 @@ class Client {
         client.event_loop_.TcpEventClear(client.fd_);
       }
     }
-    assert(stat_.failure_count == (stat_.connect_failure_count + stat_.read_failure_count + stat_.write_failure_count));
-    sum_stat_.DoStat(stat_.success_count, stat_.failure_count, stat_.read_failure_count, stat_.write_failure_count,
-                     stat_.connect_failure_count, stat_.try_connect_count);
+    assert(client.stat_.failure_count ==
+           (client.stat_.connect_failure_count + client.stat_.read_failure_count + client.stat_.write_failure_count));
+    client.sum_stat_.DoStat(client.stat_.success_count, client.stat_.failure_count, client.stat_.read_failure_count,
+                            client.stat_.write_failure_count, client.stat_.connect_failure_count,
+                            client.stat_.try_connect_count);
   }
 
   static void EventCallBack(MyCoroutine::Schedule &schedule, int32_t cid) { schedule.CoroutineResume(cid); }
-
   static void TimeOutCallBack(MyCoroutine::Schedule &schedule, int32_t cid, bool &is_time_out) {
     is_time_out = true;
     schedule.CoroutineResume(cid);
