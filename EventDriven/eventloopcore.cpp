@@ -44,6 +44,6 @@ void EventLoop::Run() {
   }
 }
 
-void EventLoop::Stop() { is_running_ = false; }
+void EventLoop::SetFinish() { is_running_ = false; }
 
 }  // namespace EventDriven

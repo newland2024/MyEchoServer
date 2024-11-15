@@ -59,7 +59,7 @@ class EventLoop {
   void TimerCancel(uint64_t timer_id) { timer_.Cancel(timer_id); }
 
   void Run();
-  void Stop();
+  void SetFinish();
 
  private:
   void EventSetUp(Event *event, EventType event_type);

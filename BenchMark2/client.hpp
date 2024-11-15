@@ -38,9 +38,10 @@ class Client {
                   std::string echo_message) {  // 启动整个请求循环，在从协程中执行
     while (client.IsRunning()) {
       client.temp_rate_limit_--;
-      if (client.temp_rate_limit_ <= 0) {  // 已经触达每秒的限频，则暂停请求
+      if (client.temp_rate_limit_ < 0) {  // 已经触达每秒的限频，则暂停请求
         client.is_stop_ = true;
         client.schedule_.CoroutineYield();
+        continue;
       }
       // 创建连接
       client.TryConnect(ip, port);
@@ -230,7 +231,7 @@ class Client {
     is_stop_ = false;
     schedule_.CoroutineResume(cid_);
   }
-  void Stop() { is_running_ = false; }
+  void SetFinish() { is_running_ = false; }
   bool IsRunning() { return is_running_; }
   
 

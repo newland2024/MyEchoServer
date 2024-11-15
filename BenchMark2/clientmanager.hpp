@@ -30,17 +30,17 @@ public:
       clients_[i]->InitStart();
     }
   }
-  void ReStart() {
+  void RateLimitRefreshAndReStart() {
+    temp_rate_limit_ = rate_limit_;
     for (int64_t i = 0; i < client_count_; i++) {
       clients_[i]->ReStart();
     }
   }
-  void Stop() {
+  void SetFinish() {
     for (int64_t i = 0; i < client_count_; i++) {
-      clients_[i]->Stop();
+      clients_[i]->SetFinish();
     }
   }
-  void RateLimitRefresh() { temp_rate_limit_ = rate_limit_; }
 
 private:
   MyCoroutine::Schedule& schedule_;
