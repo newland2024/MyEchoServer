@@ -50,7 +50,8 @@ void RateLimitRefresh(BenchMark2::ClientManager& client_manager, EventDriven::Ev
   event_loop.TimerStart(1000, RateLimitRefresh, std::ref(client_manager), std::ref(event_loop));
 }
 
-void StopHandler(EventDriven::EventLoop& event_loop, BenchMark2::ClientManager& client_manager, MyCoroutine::Schedule& schedule) {
+void StopHandler(EventDriven::EventLoop& event_loop, BenchMark2::ClientManager& client_manager,
+                 MyCoroutine::Schedule& schedule) {
   client_manager.SetFinish();  // 停止客户端请求发送，让每个客户端的协程陆续执行完毕。
   if (schedule.IsFinish()) {
     event_loop.SetFinish();  // 所以协程都执行完退出之后，再停止事件的循环
@@ -58,24 +59,25 @@ void StopHandler(EventDriven::EventLoop& event_loop, BenchMark2::ClientManager& 
   } else {
     cout << "after 1 second, try set finish again" << endl;
     // 隔1秒再尝试退出
-    event_loop.TimerStart(1000, StopHandler,
-                        std::ref(event_loop), std::ref(client_manager), std::ref(schedule));  // 退出事件循环定时器
+    event_loop.TimerStart(1000, StopHandler, std::ref(event_loop), std::ref(client_manager),
+                          std::ref(schedule));  // 退出事件循环定时器
   }
 }
 
-void Handler(SumStat &sum_stat, PctStat &pct_stat) {
+void Handler(SumStat& sum_stat, PctStat& pct_stat) {
   std::string echo_message(pkt_size + 1, 'B');
   EventDriven::EventLoop event_loop;
   MyCoroutine::Schedule schedule(1000);
-  BenchMark2::ClientManager client_manager(schedule, event_loop, client_count, ip, port, echo_message, rate_limit, sum_stat, pct_stat);
+  BenchMark2::ClientManager client_manager(schedule, event_loop, client_count, ip, port, echo_message, rate_limit,
+                                           sum_stat, pct_stat);
   event_loop.TimerStart(1, InitStart, std::ref(client_manager));  // 只调用一次，用于初始化启动客户端
   event_loop.TimerStart(1000, RateLimitRefresh, std::ref(client_manager), std::ref(event_loop));  // 每秒刷新一下限流值
-  event_loop.TimerStart(run_time * 1000, StopHandler,
-                        std::ref(event_loop), std::ref(client_manager), std::ref(schedule));  // 退出事件循环定时器
+  event_loop.TimerStart(run_time * 1000, StopHandler, std::ref(event_loop), std::ref(client_manager),
+                        std::ref(schedule));  // 退出事件循环定时器
   event_loop.Run();
 }
 
-void PrintStatData(SumStat &sum_stat, PctStat &pct_stat) {
+void PrintStatData(SumStat& sum_stat, PctStat& pct_stat) {
   cout << kGreenBegin << "--- benchmark statistics ---" << kColorEnd << endl;
   pct_stat.PrintPctAvgData();
   sum_stat.PrintStatData(client_count, run_time);
@@ -95,9 +97,9 @@ int main(int argc, char* argv[]) {
   CmdLine::Parse(argc, argv);
   thread_count = thread_count > 10 ? 10 : thread_count;
   std::thread threads[10];
-  constexpr key_t kShmKey = 888888; // 分配共享内存的key。
-  SumStat sum_stat(kShmKey);  // 原子操作，也是线程安全的
-  PctStat pct_stat;  // 线程安全
+  constexpr key_t kShmKey = 888888;  // 分配共享内存的key。
+  SumStat sum_stat(kShmKey);         // 原子操作，也是线程安全的
+  PctStat pct_stat;                  // 线程安全
   for (int64_t i = 0; i < thread_count; i++) {
     threads[i] = std::thread(Handler, std::ref(sum_stat), std::ref(pct_stat));
   }

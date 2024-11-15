@@ -31,8 +31,8 @@ class Schedule {
     return cid;
   }
 
-  void Run();  // 协程调度执行
-  bool IsFinish() { return not_idle_count_ <= 0; } // 协程完成了协程调度
+  void Run();                                       // 协程调度执行
+  bool IsFinish() { return not_idle_count_ <= 0; }  // 协程完成了协程调度
   int32_t CurrentCid() {
     assert(not is_master_);
     return slave_cid_;

@@ -7,8 +7,8 @@
 #include "EventDriven/socket.hpp"
 #include "common/codec.hpp"
 #include "common/packet.hpp"
-#include "common/stat.hpp"
 #include "common/percentile.hpp"
+#include "common/stat.hpp"
 
 namespace BenchMark2 {
 class Defer {
@@ -21,26 +21,23 @@ class Defer {
 };
 
 typedef struct ClientStat {
-  int64_t try_connect_count{0};     // 尝试连接的次数
-  int64_t success_count{0};         // 成功次数
-  int64_t failure_count{0}; // 失败次数（包括读写失败和连接失败）
-  int64_t read_failure_count{0};    // 细分的失败统计，读失败数
-  int64_t write_failure_count{0};   // 细分的失败统计，写失败数
-  int64_t connect_failure_count{0}; // 细分的失败统计，连接失败数
+  int64_t try_connect_count{0};      // 尝试连接的次数
+  int64_t success_count{0};          // 成功次数
+  int64_t failure_count{0};          // 失败次数（包括读写失败和连接失败）
+  int64_t read_failure_count{0};     // 细分的失败统计，读失败数
+  int64_t write_failure_count{0};    // 细分的失败统计，写失败数
+  int64_t connect_failure_count{0};  // 细分的失败统计，连接失败数
 } ClientStat;
 
 class Client {
  public:
-   Client(MyCoroutine::Schedule &schedule, EventDriven::EventLoop &event_loop,
-          std::string ip, int port, std::string echo_message,
-          int64_t &temp_rate_limit, SumStat &sum_stat, PctStat &pct_stat,
-          Percentile &percentile)
-       : schedule_(schedule), event_loop_(event_loop),
-         temp_rate_limit_(temp_rate_limit), sum_stat_(sum_stat),
-         pct_stat_(pct_stat), percentile_(percentile) {
-     cid_ = schedule_.CoroutineCreate(Client::Run, std::ref(*this), ip, port,
-                                      echo_message);
-   }
+  Client(MyCoroutine::Schedule &schedule, EventDriven::EventLoop &event_loop, std::string ip, int port,
+         std::string echo_message, int64_t &temp_rate_limit, SumStat &sum_stat, PctStat &pct_stat,
+         Percentile &percentile)
+      : schedule_(schedule), event_loop_(event_loop), temp_rate_limit_(temp_rate_limit), sum_stat_(sum_stat),
+        pct_stat_(pct_stat), percentile_(percentile) {
+    cid_ = schedule_.CoroutineCreate(Client::Run, std::ref(*this), ip, port, echo_message);
+  }
   static void Run(Client &client, std::string ip, int port,
                   std::string echo_message) {  // 启动整个请求循环，在从协程中执行
     while (client.IsRunning()) {
@@ -52,8 +49,10 @@ class Client {
       }
       // 创建连接
       client.TryConnect(ip, port);
+      int64_t req_begin_time{0};
       // 发起请求
       if (client.fd_ > 0) {
+        begin_time = MyEcho::GetCurrentTimeUs();
         EventDriven::Event event(client.fd_);
         client.event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(client.schedule_), client.cid_);
         client.SendRequest(echo_message);
@@ -62,11 +61,12 @@ class Client {
       if (client.fd_ > 0) {
         EventDriven::Event event(client.fd_);
         client.event_loop_.TcpModToReadStart(&event, EventCallBack, std::ref(client.schedule_), client.cid_);
-        client.RecvResponse(echo_message);
+        client.RecvResponse(req_begin_time, echo_message);
         client.event_loop_.TcpEventClear(client.fd_);
       }
     }
-    cout << "client_stat. success = " << client.stat_.success_count << ", failure = " << client.stat_.failure_count << endl;
+    cout << "client_stat. success = " << client.stat_.success_count << ", failure = " << client.stat_.failure_count
+         << endl;
   }
 
   static void EventCallBack(MyCoroutine::Schedule &schedule, int32_t cid) { schedule.CoroutineResume(cid); }
@@ -80,8 +80,11 @@ class Client {
     if (fd_ >= 0) {
       return;
     }
+    int64_t begin_time = MyEcho::GetCurrentTimeUs();
     stat_.try_connect_count++;
-    if (CoConnect(ip, port, 100)) {  // 建立连接，超时时间100ms
+    // 建立连接，超时时间100ms
+    if (CoConnect(ip, port, 100)) {
+      percentile_.ConnectSpendTimeStat(MyEcho::GetCurrentTimeUs() - begin_time);  // 统计连接超时时间
       EventDriven::Socket::SetCloseWithRst(fd_);
       return;
     }
@@ -120,7 +123,7 @@ class Client {
     }
   }
 
-  void RecvResponse(const std::string &echo_message) {
+  void RecvResponse(int64_t req_begin_time, const std::string &echo_message) {
     if (fd_ < 0) {
       return;
     }
@@ -156,6 +159,11 @@ class Client {
     assert(echo_message == *resp_message);
     delete resp_message;
     stat_.success_count++;
+    percentile_.InterfaceSpendTimeStat(MyEcho::GetCurrentTimeUs() - req_begin_time);
+    double pct50{0}, pct95{0}, pct99{0}, pct999{0};
+    if (percentile_.TryPrintSpendTimePctData(pct50, pct95, pct99, pct999)) {
+      pct_stat_.InterfaceSpendTimeStat(pct50, pct95, pct99, pct999);
+    }
   }
 
   bool CoConnect(std::string ip, int port, int64_t time_out_ms) {
@@ -165,10 +173,10 @@ class Client {
     }
     if (ret == EINPROGRESS) {
       bool is_time_out{false};
-      uint64_t timer_id = event_loop_.TimerStart(time_out_ms, TimeOutCallBack, std::ref(schedule_), cid_, std::ref(is_time_out));
+      uint64_t timer_id =
+          event_loop_.TimerStart(time_out_ms, TimeOutCallBack, std::ref(schedule_), cid_, std::ref(is_time_out));
       EventDriven::Event event(fd_);
-      event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(schedule_),
-                                cid_);
+      event_loop_.TcpWriteStart(&event, EventCallBack, std::ref(schedule_), cid_);
       Defer defer([this, &is_time_out, timer_id]() {
         event_loop_.TcpEventClear(fd_);
         if (not is_time_out) {
@@ -176,7 +184,7 @@ class Client {
         }
       });
       schedule_.CoroutineYield();
-      if (is_time_out) { // 连接超时了
+      if (is_time_out) {  // 连接超时了
         return false;
       }
       return EventDriven::Socket::IsConnectSuccess(fd_);
@@ -253,7 +261,7 @@ class Client {
   int64_t GetCurrentTimeUs() {
     struct timeval current;
     gettimeofday(&current, NULL);
-    return current.tv_sec * 1000000 + current.tv_usec;  //计算运行的时间，单位微秒
+    return current.tv_sec * 1000000 + current.tv_usec;  // 计算运行的时间，单位微秒
   }
 
  private:
@@ -265,8 +273,8 @@ class Client {
   bool is_stop_{false};
   bool is_running_{true};
   ClientStat stat_;
-  SumStat &sum_stat_;        // 汇总统计（全局）
-  PctStat &pct_stat_;        // pct统计（全局）
-  Percentile &percentile_;    // 用于统计请求耗时的pctxx数值（线程各自一份）
+  SumStat &sum_stat_;       // 汇总统计（全局）
+  PctStat &pct_stat_;       // pct统计（全局）
+  Percentile &percentile_;  // 用于统计请求耗时的pctxx数值（线程各自一份）
 };
 }  // namespace BenchMark2
