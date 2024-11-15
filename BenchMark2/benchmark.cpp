@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
   SumStat sum_stat(kShmKey);  // 原子操作，也是线程安全的
   PctStat pct_stat;  // 线程安全
   for (int64_t i = 0; i < thread_count; i++) {
-    threads[i] = std::thread(Handler, sum_stat, pct_stat);
+    threads[i] = std::thread(Handler, std::ref(sum_stat), std::ref(pct_stat));
   }
   for (int64_t i = 0; i < thread_count; i++) {
     threads[i].join();
