@@ -26,7 +26,7 @@ bool is_debug;
 
 void usage() {
   cout << "BenchMark -ip 0.0.0.0 -port 1688 -thread_count 1 -max_req_count 100000 -pkt_size 1024 -client_count 200 "
-          "-run_time 60 -rate_limit 10000 -debug"
+          "-run_time 60 -rate_limit 100000 -debug"
        << endl;
   cout << "options:" << endl;
   cout << "    -h,--help                      print usage" << endl;
@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
   CmdLine::Parse(argc, argv);
   thread_count = thread_count > 10 ? 10 : thread_count;
   std::thread threads[10];
-  constexpr key_t kShmKey = 666666; // 分配共享内存的key。
+  constexpr key_t kShmKey = 666666;  // 分配共享内存的key。
   SumStat sum_stat(kShmKey);
   PctStat pct_stat;
   for (int64_t i = 0; i < thread_count; i++) {

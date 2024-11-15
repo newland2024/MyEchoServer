@@ -26,7 +26,7 @@ bool is_debug;
 void Usage() {
   cout << "BenchMark2 -ip 0.0.0.0 -port 1688 -thread_count 1 -max_req_count "
           "100000 -pkt_size 1024 -client_count 200 "
-          "-run_time 60 -rate_limit 10000 -debug"
+          "-run_time 60 -rate_limit 100000"
        << endl;
   cout << "options:" << endl;
   cout << "    -h,--help                      print usage" << endl;
@@ -38,7 +38,6 @@ void Usage() {
   cout << "    -client_count,--client_count   count of client" << endl;
   cout << "    -run_time,--run_time           run time, unit is second" << endl;
   cout << "    -rate_limit,--rate_limit       rate limit, unit is qps/second" << endl;
-  cout << "    -debug,--debug                 debug mode, more info print" << endl;
   cout << endl;
 }
 
