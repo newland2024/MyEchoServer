@@ -24,7 +24,7 @@ class Percentile {
     static std::mutex static_mutex;
     {
       double connect_pct50{0}, connect_pct95{0}, connect_pct99{0}, connect_pct999{0};
-      std::lock_guard<std::mutex> guard(static_mutex);  // 对终端的输出和统计pctxx数据都是临界区
+      std::lock_guard<std::mutex> guard(static_mutex);  // 对终端的输出也是临界区，所以要加锁
       cout << "per " << std::to_string(interface_spend_time_stat_data_.size()) << " req stat data -> ";
       cout << "interface[pct50=" << interface_pct50 << "us,pct95=" << interface_pct95 << "us,pct99=" << interface_pct99
            << "us,pct999=" << interface_pct999 << "us]";

@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
   CmdLine::Parse(argc, argv);
   thread_count = thread_count > 10 ? 10 : thread_count;
   std::thread threads[10];
-  constexpr key_t kShmKey = 12345; // 分配共享内存的key。
+  constexpr key_t kShmKey = 666666; // 分配共享内存的key。
   SumStat sum_stat(kShmKey);
   PctStat pct_stat;
   for (int64_t i = 0; i < thread_count; i++) {

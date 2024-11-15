@@ -7,6 +7,8 @@
 #include "EventDriven/socket.hpp"
 #include "common/codec.hpp"
 #include "common/packet.hpp"
+#include "common/stat.hpp"
+#include "common/percentile.hpp"
 
 namespace BenchMark2 {
 class Defer {
@@ -29,11 +31,16 @@ typedef struct ClientStat {
 
 class Client {
  public:
-  Client(MyCoroutine::Schedule &schedule, EventDriven::EventLoop &event_loop, std::string ip, int port,
-         std::string echo_message, int64_t &temp_rate_limit)
-      : schedule_(schedule), event_loop_(event_loop), temp_rate_limit_(temp_rate_limit) {
-    cid_ = schedule_.CoroutineCreate(Client::Run, std::ref(*this), ip, port, echo_message);
-  }
+   Client(MyCoroutine::Schedule &schedule, EventDriven::EventLoop &event_loop,
+          std::string ip, int port, std::string echo_message,
+          int64_t &temp_rate_limit, PctStat &pct_stat, SumStat &sum_stat,
+          Percentile &percentile)
+       : schedule_(schedule), event_loop_(event_loop),
+         temp_rate_limit_(temp_rate_limit), pct_stat_(pct_stat),
+         sum_stat_(sum_stat), percentile_(percentile) {
+     cid_ = schedule_.CoroutineCreate(Client::Run, std::ref(*this), ip, port,
+                                      echo_message);
+   }
   static void Run(Client &client, std::string ip, int port,
                   std::string echo_message) {  // 启动整个请求循环，在从协程中执行
     while (client.IsRunning()) {
@@ -258,5 +265,8 @@ class Client {
   bool is_stop_{false};
   bool is_running_{true};
   ClientStat stat_;
+  PctStat &pct_stat_;        // pct统计（全局）
+  SumStat &sum_stat_;        // 汇总统计（全局）
+  Percentile &percentile_;    // 用于统计请求耗时的pctxx数值（线程各自一份）
 };
 }  // namespace BenchMark2
