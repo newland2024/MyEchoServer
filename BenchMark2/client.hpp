@@ -249,7 +249,7 @@ class Client {
   EventDriven::EventLoop &event_loop_;
   int fd_{-1};
   int32_t cid_{-1};
-  int64_t &temp_rate_limit_{0};
+  int64_t &temp_rate_limit_;
   bool is_stop_{false};
   bool is_running_{true};
   ClientStat stat_;
