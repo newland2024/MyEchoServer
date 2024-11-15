@@ -18,6 +18,15 @@ class Defer {
   std::function<void(void)> func_;
 };
 
+typedef struct ClientStat {
+  int64_t try_connect_count{0};     // 尝试连接的次数
+  int64_t success_count{0};         // 成功次数
+  int64_t failure_count{0}; // 失败次数（包括读写失败和连接失败）
+  int64_t read_failure_count{0};    // 细分的失败统计，读失败数
+  int64_t write_failure_count{0};   // 细分的失败统计，写失败数
+  int64_t connect_failure_count{0}; // 细分的失败统计，连接失败数
+} ClientStat;
+
 class Client {
  public:
   Client(MyCoroutine::Schedule &schedule, EventDriven::EventLoop &event_loop, std::string ip, int port,
@@ -127,14 +136,9 @@ class Client {
       // TODO 统计相关
       return;
     }
-    if (echo_message != *resp_message) {
-      // TODO
-    } else {
-      success_count_++;
-      cout << "echo req success. " << endl;
-    }
+    assert(echo_message == *resp_message);
     delete resp_message;
-    // TODO 统计相关
+    stat_.success++;
   }
 
   bool CoConnect(std::string ip, int port, int64_t time_out_ms) {
@@ -233,11 +237,11 @@ class Client {
  private:
   MyCoroutine::Schedule &schedule_;
   EventDriven::EventLoop &event_loop_;
+  int fd_{-1};
   int32_t cid_;
   int64_t &temp_rate_limit_;
   bool is_stop_{false};
-  int fd_{-1};
-  int64_t success_count_{0};
   bool is_running_{true};
+  ClientStat stat_;
 };
 }  // namespace BenchMark2
