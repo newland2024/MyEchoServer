@@ -15,7 +15,7 @@ public:
                 int64_t rate_limit, SumStat &sum_stat, PctStat &pct_stat)
       : schedule_(schedule), client_count_(client_count),
         rate_limit_(rate_limit), temp_rate_limit_(rate_limit),
-        pct_stat_(pct_stat), sum_stat_(sum_stat) {
+        sum_stat_(sum_stat), pct_stat_(pct_stat) {
     clients_ = new Client *[client_count];
     for (int64_t i = 0; i < client_count_; i++) {
       clients_[i] =
