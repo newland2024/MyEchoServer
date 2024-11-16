@@ -79,12 +79,12 @@ class EchoClient {
   }
   void GetDealStat(int64_t& success_count, int64_t& failure_count, int64_t& connect_failure_count,
                    int64_t& read_failure_count, int64_t& write_failure_count, int64_t& try_connect_count) {
-    try_connect_count += try_connect_count_;
-    success_count += success_count_;
-    failure_count += failure_count_;
-    connect_failure_count += connect_failure_count_;
-    read_failure_count += read_failure_count_;
-    write_failure_count += write_failure_count_;
+    try_connect_count = try_connect_count_;
+    success_count = success_count_;
+    failure_count = failure_count_;
+    connect_failure_count = connect_failure_count_;
+    read_failure_count = read_failure_count_;
+    write_failure_count = write_failure_count_;
   }
   bool IsValid() {
     if (Failure == status_ || Finish == status_) {
